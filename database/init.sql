@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS weather.dim_location (
     latitude DECIMAL(9, 6) NOT NULL,
     longitude DECIMAL(9, 6) NOT NULL,
     timezone VARCHAR(50) DEFAULT 'America/New_York',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
+    updated_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
     UNIQUE(latitude, longitude)
 );
 
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS weather.fact_current_weather (
     surface_pressure DECIMAL(7, 2),
     
     -- Metadata
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
     
     -- Ensure we don't duplicate observations for same location/time
     UNIQUE(location_id, observation_time)
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS weather.fact_weather_history (
     is_day INTEGER,
     pressure_msl DECIMAL(7, 2),
     surface_pressure DECIMAL(7, 2),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')
 );
 
 -- ============================================================================
@@ -171,6 +171,26 @@ FROM weather.fact_current_weather w
 JOIN weather.dim_location l ON w.location_id = l.location_id
 WHERE w.observation_time >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY l.location_id, l.neighborhood_name, l.community_board;
+
+-- ============================================================================
+-- TRIGGER FOR UPDATED_AT TIMESTAMP
+-- ============================================================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION weather.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York';
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Trigger on dim_location
+DROP TRIGGER IF EXISTS update_dim_location_updated_at ON weather.dim_location;
+CREATE TRIGGER update_dim_location_updated_at
+    BEFORE UPDATE ON weather.dim_location
+    FOR EACH ROW
+    EXECUTE FUNCTION weather.update_updated_at_column();
 
 -- ============================================================================
 -- PERMISSIONS
