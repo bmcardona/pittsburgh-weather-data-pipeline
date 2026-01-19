@@ -10,6 +10,8 @@ x-airflow-common:
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: ${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
     AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
     AIRFLOW__API__AUTH_BACKENDS: ${AIRFLOW__API__AUTH_BACKENDS}
+    # Cache directory - keeps .cache.sqlite inside container
+    AIRFLOW__CORE__CACHE_DIR: /opt/airflow/.cache
     # Add these so your DAGs can connect to weather database
     WEATHER_DB_HOST: ${POSTGRES_HOST}
     WEATHER_DB_PORT: ${POSTGRES_PORT}
@@ -21,7 +23,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ${AIRFLOW_PROJ_DIR:-.}/etl:/opt/airflow/etl  # ADD THIS LINE
+    - ${AIRFLOW_PROJ_DIR:-.}/etl:/opt/airflow/etl
     
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
