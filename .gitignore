@@ -1,1 +1,4 @@
 /myenv
+.env
+logs/
+__pycache__/
