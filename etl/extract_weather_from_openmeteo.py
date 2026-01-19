@@ -1,3 +1,6 @@
+"""
+Weather data extraction from Open-Meteo API
+"""
 import requests
 import json
 import psycopg2
@@ -116,8 +119,9 @@ def main():
     
     # Load coordinates
     try:
-        coordinates = load_coordinates()
-        print(f"Loaded {len(coordinates)} locations")
+        data = load_coordinates()
+        community_boards = data.get('community_boards', [])
+        print(f"Loaded {len(community_boards)} community boards")
     except FileNotFoundError:
         print("Error: coordinates.json file not found")
         return
@@ -138,35 +142,45 @@ def main():
     success_count = 0
     error_count = 0
     
-    for neighborhood, coords in coordinates.items():
-        try:
-            latitude = coords['latitude']
-            longitude = coords['longitude']
-            community_board = coords.get('community_board')
-            
-            # Fetch weather data
-            weather_data = get_weather_data(latitude, longitude)
-            if not weather_data:
-                print(f"Failed to fetch weather data for {neighborhood}")
+    # Iterate through community boards
+    for cb in community_boards:
+        borough = cb.get('borough')
+        board = cb.get('board')
+        community_board = f"{borough} {board}"
+        
+        # Process each neighborhood in this community board
+        for neighborhood_data in cb.get('neighborhoods', []):
+            try:
+                neighborhood_name = neighborhood_data['name']
+                latitude = neighborhood_data['latitude']
+                longitude = neighborhood_data['longitude']
+                
+                # Create full neighborhood identifier
+                full_name = f"{borough} - {neighborhood_name}"
+                
+                # Fetch weather data
+                weather_data = get_weather_data(latitude, longitude)
+                if not weather_data:
+                    print(f"Failed to fetch weather data for {full_name}")
+                    error_count += 1
+                    continue
+                
+                # Insert/update location
+                location_id = insert_or_update_location(
+                    cursor, full_name, latitude, longitude, community_board
+                )
+                
+                # Insert weather observation
+                insert_weather_observation(cursor, location_id, weather_data)
+                
+                success_count += 1
+                print(f"✓ Processed {full_name} ({community_board})")
+                
+            except Exception as e:
+                print(f"✗ Error processing {neighborhood_name}: {e}")
                 error_count += 1
+                conn.rollback()
                 continue
-            
-            # Insert/update location
-            location_id = insert_or_update_location(
-                cursor, neighborhood, latitude, longitude, community_board
-            )
-            
-            # Insert weather observation
-            insert_weather_observation(cursor, location_id, weather_data)
-            
-            success_count += 1
-            print(f"✓ Processed {neighborhood}")
-            
-        except Exception as e:
-            print(f"✗ Error processing {neighborhood}: {e}")
-            error_count += 1
-            conn.rollback()
-            continue
     
     # Commit and close
     conn.commit()

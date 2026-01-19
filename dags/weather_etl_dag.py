@@ -67,11 +67,14 @@ def nyc_weather_pipeline():
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import get_weather_data
         
-        print("🌤️  Fetching weather data from Open-Meteo API...")
+        print("🌤️ Fetching weather data from Open-Meteo API...")
         weather_observations = []
         
         for board in coordinates['community_boards']:
-            board_name = board.get('name', 'Unknown')
+            # FIX: Construct board_name from 'borough' and 'board' fields
+            borough = board.get('borough', 'Unknown')
+            board_code = board.get('board', 'Unknown')
+            board_name = f"{borough} {board_code}"
             
             for neighborhood in board['neighborhoods']:
                 name = neighborhood['name']
@@ -88,7 +91,7 @@ def nyc_weather_pipeline():
                         'longitude': lon,
                         'weather_data': weather_data
                     })
-                    print(f"  ✓ {name}: {weather_data['current'].get('temperature_2m')}°C")
+                    print(f"  ✓ {name} ({board_name}): {weather_data['current'].get('temperature_2m')}°C")
                 else:
                     print(f"  ✗ {name}: Failed to fetch weather data")
         
