@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS weather.dim_date (
 -- Fact table for current weather observations
 CREATE TABLE IF NOT EXISTS weather.fact_current_weather (
     weather_id BIGSERIAL PRIMARY KEY,
-    location_id INTEGER NOT NULL REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    CONSTRAINT fk_current_weather_location FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
     observation_time TIMESTAMP NOT NULL,
     
     -- Temperature metrics (Celsius)
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS weather.fact_current_weather (
 -- Optional: Historical weather table for tracking changes over time
 CREATE TABLE IF NOT EXISTS weather.fact_weather_history (
     history_id BIGSERIAL PRIMARY KEY,
-    location_id INTEGER NOT NULL REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    CONSTRAINT fk_weather_history_location FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
     observation_time TIMESTAMP NOT NULL,
     temperature_2m DECIMAL(5, 2),
     apparent_temperature DECIMAL(5, 2),
