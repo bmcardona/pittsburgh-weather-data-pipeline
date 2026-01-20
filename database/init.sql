@@ -8,7 +8,7 @@ CREATE SCHEMA IF NOT EXISTS weather;
 -- DIMENSION TABLES
 -- ============================================================================
 
--- Dimension table for NYC neighborhoods
+-- NYC neighborhoods with geographic coordinates
 CREATE TABLE IF NOT EXISTS weather.dim_location (
     location_id SERIAL PRIMARY KEY,
     neighborhood_name VARCHAR(100) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS weather.dim_location (
     UNIQUE(latitude, longitude)
 );
 
--- Dimension table for date/time
+-- Date dimension for time-based analysis
 CREATE TABLE IF NOT EXISTS weather.dim_date (
     date_id SERIAL PRIMARY KEY,
     date DATE NOT NULL UNIQUE,
@@ -40,10 +40,11 @@ CREATE TABLE IF NOT EXISTS weather.dim_date (
 -- FACT TABLES
 -- ============================================================================
 
--- Fact table for current weather observations
+-- Current weather observations from Open-Meteo API
 CREATE TABLE IF NOT EXISTS weather.fact_current_weather (
     weather_id BIGSERIAL PRIMARY KEY,
-    CONSTRAINT fk_current_weather_location FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    location_id INTEGER NOT NULL,
+    date_id INTEGER NOT NULL,
     observation_time TIMESTAMP NOT NULL,
     
     -- Temperature metrics (Celsius)
@@ -76,14 +77,21 @@ CREATE TABLE IF NOT EXISTS weather.fact_current_weather (
     -- Metadata
     created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
     
-    -- Ensure we don't duplicate observations for same location/time
+    -- Foreign key constraints
+    CONSTRAINT fk_current_weather_location 
+        FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    CONSTRAINT fk_current_weather_date 
+        FOREIGN KEY (date_id) REFERENCES weather.dim_date(date_id),
+    
+    -- Prevent duplicate observations
     UNIQUE(location_id, observation_time)
 );
 
--- Optional: Historical weather table for tracking changes over time
+-- Historical weather data for trend analysis
 CREATE TABLE IF NOT EXISTS weather.fact_weather_history (
     history_id BIGSERIAL PRIMARY KEY,
-    CONSTRAINT fk_weather_history_location FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    location_id INTEGER NOT NULL,
+    date_id INTEGER NOT NULL,
     observation_time TIMESTAMP NOT NULL,
     temperature_2m DECIMAL(5, 2),
     apparent_temperature DECIMAL(5, 2),
@@ -100,38 +108,48 @@ CREATE TABLE IF NOT EXISTS weather.fact_weather_history (
     is_day INTEGER,
     pressure_msl DECIMAL(7, 2),
     surface_pressure DECIMAL(7, 2),
-    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York')
+    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York'),
+    
+    -- Foreign key constraints
+    CONSTRAINT fk_weather_history_location 
+        FOREIGN KEY (location_id) REFERENCES weather.dim_location(location_id) ON DELETE CASCADE,
+    CONSTRAINT fk_weather_history_date 
+        FOREIGN KEY (date_id) REFERENCES weather.dim_date(date_id)
 );
 
 -- ============================================================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================================================
 
--- Indexes on dim_location
+-- dim_location indexes
 CREATE INDEX IF NOT EXISTS idx_dim_location_neighborhood ON weather.dim_location(neighborhood_name);
 CREATE INDEX IF NOT EXISTS idx_dim_location_coords ON weather.dim_location(latitude, longitude);
 
--- Indexes on dim_date
+-- dim_date indexes
 CREATE INDEX IF NOT EXISTS idx_dim_date_year_month ON weather.dim_date(year, month);
 CREATE INDEX IF NOT EXISTS idx_dim_date_quarter ON weather.dim_date(quarter);
 
--- Indexes on fact_current_weather
+-- fact_current_weather indexes
 CREATE INDEX IF NOT EXISTS idx_fact_current_weather_location ON weather.fact_current_weather(location_id);
+CREATE INDEX IF NOT EXISTS idx_fact_current_weather_date ON weather.fact_current_weather(date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_current_weather_time ON weather.fact_current_weather(observation_time DESC);
+CREATE INDEX IF NOT EXISTS idx_fact_current_weather_location_date ON weather.fact_current_weather(location_id, date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_current_weather_location_time ON weather.fact_current_weather(location_id, observation_time DESC);
 CREATE INDEX IF NOT EXISTS idx_fact_current_weather_weather_code ON weather.fact_current_weather(weather_code);
 CREATE INDEX IF NOT EXISTS idx_fact_current_weather_created ON weather.fact_current_weather(created_at DESC);
 
--- Indexes on fact_weather_history
+-- fact_weather_history indexes
 CREATE INDEX IF NOT EXISTS idx_fact_weather_history_location ON weather.fact_weather_history(location_id);
+CREATE INDEX IF NOT EXISTS idx_fact_weather_history_date ON weather.fact_weather_history(date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_weather_history_time ON weather.fact_weather_history(observation_time DESC);
+CREATE INDEX IF NOT EXISTS idx_fact_weather_history_location_date ON weather.fact_weather_history(location_id, date_id);
 CREATE INDEX IF NOT EXISTS idx_fact_weather_history_location_time ON weather.fact_weather_history(location_id, observation_time DESC);
 
 -- ============================================================================
 -- VIEWS FOR COMMON QUERIES
 -- ============================================================================
 
--- View: Latest weather for all locations
+-- Most recent weather observation for each location
 CREATE OR REPLACE VIEW weather.v_latest_weather AS
 SELECT 
     l.neighborhood_name,
@@ -155,7 +173,7 @@ WHERE w.observation_time = (
     WHERE location_id = w.location_id
 );
 
--- View: Weather summary by neighborhood
+-- Weather statistics by neighborhood for last 7 days
 CREATE OR REPLACE VIEW weather.v_weather_summary AS
 SELECT 
     l.neighborhood_name,
@@ -173,19 +191,18 @@ WHERE w.observation_time >= CURRENT_DATE - INTERVAL '7 days'
 GROUP BY l.location_id, l.neighborhood_name, l.community_board;
 
 -- ============================================================================
--- TRIGGER FOR UPDATED_AT TIMESTAMP
+-- TRIGGERS
 -- ============================================================================
 
--- Function to update updated_at timestamp
+-- Auto-update updated_at timestamp on dim_location
 CREATE OR REPLACE FUNCTION weather.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = CURRENT_TIMESTAMP AT TIME ZONE 'America/New_York';
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE 'plpgsql';
 
--- Trigger on dim_location
 DROP TRIGGER IF EXISTS update_dim_location_updated_at ON weather.dim_location;
 CREATE TRIGGER update_dim_location_updated_at
     BEFORE UPDATE ON weather.dim_location
@@ -196,33 +213,16 @@ CREATE TRIGGER update_dim_location_updated_at
 -- PERMISSIONS
 -- ============================================================================
 
--- Grant schema usage
 GRANT USAGE ON SCHEMA weather TO weather_user;
-
--- Grant table permissions
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA weather TO weather_user;
-
--- Grant sequence permissions (for SERIAL columns)
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA weather TO weather_user;
 
--- Grant permissions on future tables
+-- Permissions for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA weather 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO weather_user;
-
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO weather_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA weather 
-GRANT USAGE, SELECT ON SEQUENCES TO weather_user;
+    GRANT USAGE, SELECT ON SEQUENCES TO weather_user;
 
--- Grant view permissions
+-- View permissions
 GRANT SELECT ON weather.v_latest_weather TO weather_user;
 GRANT SELECT ON weather.v_weather_summary TO weather_user;
-
--- ============================================================================
--- HELPFUL COMMENTS
--- ============================================================================
-
-COMMENT ON TABLE weather.dim_location IS 'NYC neighborhood locations with coordinates';
-COMMENT ON TABLE weather.dim_date IS 'Date dimension for time-based analysis';
-COMMENT ON TABLE weather.fact_current_weather IS 'Current weather observations from Open-Meteo API';
-COMMENT ON TABLE weather.fact_weather_history IS 'Historical weather data for trend analysis';
-COMMENT ON VIEW weather.v_latest_weather IS 'Most recent weather observation for each location';
-COMMENT ON VIEW weather.v_weather_summary IS 'Weather statistics by neighborhood for last 7 days';
