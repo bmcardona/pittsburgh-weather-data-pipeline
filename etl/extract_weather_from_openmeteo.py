@@ -53,6 +53,43 @@ def load_coordinates(coordinates_path: str = '/opt/airflow/etl/coordinates.json'
         return json.load(f)
 
 
+def get_or_create_date(cursor, observation_time: datetime) -> int:
+    """Get or create date dimension record and return date_id"""
+    date_only = observation_time.date()
+    
+    # Try to get existing date_id
+    cursor.execute("""
+        SELECT date_id FROM weather.dim_date WHERE date = %s
+    """, (date_only,))
+    
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    
+    # Create new date dimension record
+    cursor.execute("""
+        INSERT INTO weather.dim_date (
+            date, year, month, day, day_of_week, day_name, 
+            week_of_year, quarter, is_weekend
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        RETURNING date_id
+    """, (
+        date_only,
+        date_only.year,
+        date_only.month,
+        date_only.day,
+        date_only.weekday(),
+        date_only.strftime('%A'),
+        date_only.isocalendar()[1],
+        (date_only.month - 1) // 3 + 1,
+        date_only.weekday() >= 5
+    ))
+    
+    return cursor.fetchone()[0]
+
+
 def insert_or_update_location(cursor, neighborhood_name: str, latitude: float, 
                               longitude: float, community_board: Optional[str] = None) -> int:
     """Insert or update location and return location_id"""
@@ -74,17 +111,21 @@ def insert_weather_observation(cursor, location_id: int, weather_data: Dict) -> 
     current = weather_data.get('current', {})
     observation_time = datetime.fromisoformat(current.get('time'))
     
+    # Get or create date_id
+    date_id = get_or_create_date(cursor, observation_time)
+    
     cursor.execute("""
         INSERT INTO weather.fact_current_weather (
-            location_id, observation_time,
+            location_id, date_id, observation_time,
             temperature_2m, apparent_temperature, relative_humidity_2m,
             wind_speed_10m, wind_direction_10m, wind_gusts_10m,
             precipitation, rain, showers, snowfall,
             weather_code, cloud_cover, is_day,
             pressure_msl, surface_pressure
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (location_id, observation_time) 
         DO UPDATE SET
+            date_id = EXCLUDED.date_id,
             temperature_2m = EXCLUDED.temperature_2m,
             apparent_temperature = EXCLUDED.apparent_temperature,
             relative_humidity_2m = EXCLUDED.relative_humidity_2m,
@@ -101,7 +142,7 @@ def insert_weather_observation(cursor, location_id: int, weather_data: Dict) -> 
             pressure_msl = EXCLUDED.pressure_msl,
             surface_pressure = EXCLUDED.surface_pressure
     """, (
-        location_id, observation_time,
+        location_id, date_id, observation_time,
         current.get('temperature_2m'), current.get('apparent_temperature'),
         current.get('relative_humidity_2m'), current.get('wind_speed_10m'),
         current.get('wind_direction_10m'), current.get('wind_gusts_10m'),
@@ -142,20 +183,17 @@ def main():
     success_count = 0
     error_count = 0
     
-    # Iterate through community boards
     for cb in community_boards:
         borough = cb.get('borough')
         board = cb.get('board')
         community_board = f"{borough} {board}"
         
-        # Process each neighborhood in this community board
         for neighborhood_data in cb.get('neighborhoods', []):
             try:
                 neighborhood_name = neighborhood_data['name']
                 latitude = neighborhood_data['latitude']
                 longitude = neighborhood_data['longitude']
                 
-                # Create full neighborhood identifier
                 full_name = f"{borough} - {neighborhood_name}"
                 
                 # Fetch weather data
