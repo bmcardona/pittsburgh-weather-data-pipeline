@@ -1,6 +1,13 @@
 # Use the official Airflow image as the base
 FROM apache/airflow:2.10.2
 
+# Install git for dbt packages
+USER root
+RUN apt-get update && \
+    apt-get install -y git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Switch to airflow user for pip installations
 USER airflow
 
