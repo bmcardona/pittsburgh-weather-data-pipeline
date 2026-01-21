@@ -7,3 +7,4 @@ __pycache__/
 .cache.sqlite-wal
 /archive/learned.txt
 .user.yml
+/dbt/target
