@@ -1,9 +1,7 @@
-{{ config(
-    materialized='view'
-) }}
+
 
 with source as (
-    select * from {{ source('weather', 'dim_location') }}
+    select * from "weather_db"."weather"."dim_location"
 ),
 
 cleaned as (

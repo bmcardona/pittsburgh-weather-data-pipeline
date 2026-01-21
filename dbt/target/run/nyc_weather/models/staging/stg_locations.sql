@@ -1,9 +1,12 @@
-{{ config(
-    materialized='view'
-) }}
+
+  create view "weather_db"."weather_staging"."stg_locations__dbt_tmp"
+    
+    
+  as (
+    
 
 with source as (
-    select * from {{ source('weather', 'dim_location') }}
+    select * from "weather_db"."weather"."dim_location"
 ),
 
 cleaned as (
@@ -20,3 +23,4 @@ cleaned as (
 )
 
 select * from cleaned
+  );
