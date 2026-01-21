@@ -1,0 +1,260 @@
+version: 2
+sources:
+  - name: weather
+    description: "Raw weather data loaded by Airflow from Open-Meteo API"
+    database: weather_db
+    schema: weather
+    tables:
+      - name: dim_location
+        description: "NYC neighborhoods with geographic coordinates"
+        columns:
+          - name: location_id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null
+          
+          - name: neighborhood_name
+            description: "Name of NYC neighborhood"
+            tests:
+              - not_null
+          
+          - name: community_board
+            description: "NYC community board identifier"
+          
+          - name: latitude
+            description: "Latitude coordinate"
+            tests:
+              - not_null
+          
+          - name: longitude
+            description: "Longitude coordinate"
+            tests:
+              - not_null
+          
+          - name: timezone
+            description: "Timezone for the location"
+          
+          - name: created_at
+            description: "Record creation timestamp"
+          
+          - name: updated_at
+            description: "Record last update timestamp"
+      
+      - name: dim_date
+        description: "Date dimension for time-based analysis"
+        columns:
+          - name: date_id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null
+          
+          - name: date
+            description: "Calendar date"
+            tests:
+              - unique
+              - not_null
+          
+          - name: year
+            description: "Year"
+            tests:
+              - not_null
+          
+          - name: month
+            description: "Month (1-12)"
+            tests:
+              - not_null
+          
+          - name: day
+            description: "Day of month"
+            tests:
+              - not_null
+          
+          - name: day_of_week
+            description: "Day of week (0-6)"
+            tests:
+              - not_null
+          
+          - name: day_name
+            description: "Name of the day"
+            tests:
+              - not_null
+          
+          - name: week_of_year
+            description: "Week number in year"
+            tests:
+              - not_null
+          
+          - name: quarter
+            description: "Quarter (1-4)"
+            tests:
+              - not_null
+          
+          - name: is_weekend
+            description: "Boolean flag for weekend"
+            tests:
+              - not_null
+          
+          - name: is_holiday
+            description: "Boolean flag for holidays"
+      
+      - name: fact_current_weather
+        description: "Current weather observations for NYC neighborhoods"
+        columns:
+          - name: weather_id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null
+          
+          - name: location_id
+            description: "Foreign key to dim_location"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('weather', 'dim_location')
+                    field: location_id
+          
+          - name: date_id
+            description: "Foreign key to dim_date"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('weather', 'dim_date')
+                    field: date_id
+          
+          - name: observation_time
+            description: "Timestamp of weather observation"
+            tests:
+              - not_null
+          
+          - name: temperature_2m
+            description: "Temperature at 2 meters in Celsius"
+          
+          - name: apparent_temperature
+            description: "Feels-like temperature in Celsius"
+          
+          - name: relative_humidity_2m
+            description: "Relative humidity percentage"
+          
+          - name: wind_speed_10m
+            description: "Wind speed at 10 meters"
+          
+          - name: wind_direction_10m
+            description: "Wind direction in degrees"
+          
+          - name: wind_gusts_10m
+            description: "Wind gust speed at 10 meters"
+          
+          - name: precipitation
+            description: "Total precipitation in mm"
+          
+          - name: rain
+            description: "Rainfall in mm"
+          
+          - name: showers
+            description: "Shower precipitation in mm"
+          
+          - name: snowfall
+            description: "Snowfall in mm"
+          
+          - name: weather_code
+            description: "WMO weather code"
+          
+          - name: cloud_cover
+            description: "Cloud cover percentage"
+          
+          - name: is_day
+            description: "Day/night indicator (1=day, 0=night)"
+          
+          - name: pressure_msl
+            description: "Mean sea level pressure in hPa"
+          
+          - name: surface_pressure
+            description: "Surface pressure in hPa"
+          
+          - name: created_at
+            description: "Record creation timestamp"
+      
+      - name: fact_weather_history
+        description: "Historical weather data for trend analysis"
+        columns:
+          - name: history_id
+            description: "Primary key"
+            tests:
+              - unique
+              - not_null
+          
+          - name: location_id
+            description: "Foreign key to dim_location"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('weather', 'dim_location')
+                    field: location_id
+          
+          - name: date_id
+            description: "Foreign key to dim_date"
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('weather', 'dim_date')
+                    field: date_id
+          
+          - name: observation_time
+            description: "Timestamp of weather observation"
+            tests:
+              - not_null
+          
+          - name: temperature_2m
+            description: "Temperature at 2 meters in Celsius"
+          
+          - name: apparent_temperature
+            description: "Feels-like temperature in Celsius"
+          
+          - name: relative_humidity_2m
+            description: "Relative humidity percentage"
+          
+          - name: wind_speed_10m
+            description: "Wind speed at 10 meters"
+          
+          - name: wind_direction_10m
+            description: "Wind direction in degrees"
+          
+          - name: wind_gusts_10m
+            description: "Wind gust speed at 10 meters"
+          
+          - name: precipitation
+            description: "Total precipitation in mm"
+          
+          - name: rain
+            description: "Rainfall in mm"
+          
+          - name: showers
+            description: "Shower precipitation in mm"
+          
+          - name: snowfall
+            description: "Snowfall in mm"
+          
+          - name: weather_code
+            description: "WMO weather code"
+          
+          - name: cloud_cover
+            description: "Cloud cover percentage"
+          
+          - name: is_day
+            description: "Day/night indicator (1=day, 0=night)"
+          
+          - name: pressure_msl
+            description: "Mean sea level pressure in hPa"
+          
+          - name: surface_pressure
+            description: "Surface pressure in hPa"
+          
+          - name: created_at
+            description: "Record creation timestamp"
