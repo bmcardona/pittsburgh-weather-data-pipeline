@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: int_weather_enriched
+    description: "Weather observations with human-readable categorizations"
+    columns:
+      - name: weather_id
+        description: "Unique identifier for each weather observation"
+        data_tests:
+          - unique
+          - not_null
+      
+      - name: temp_category
+        description: "Temperature classification"
+        data_tests:
+          - not_null
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: ['Freezing', 'Cold', 'Mild', 'Warm', 'Hot']
+      
+      - name: weather_condition
+        description: "Human-readable weather condition"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Clear sky', 'Partly cloudy', 'Foggy', 'Drizzle', 'Rain', 
+                         'Snow', 'Rain showers', 'Snow showers', 'Thunderstorm', 'Unknown']
+      
+      - name: wind_category
+        description: "Wind speed classification"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Calm', 'Light air', 'Light breeze', 'Moderate breeze', 
+                         'Strong breeze', 'High wind']
+  
+  - name: int_weather_hourly
+    description: "Hourly weather aggregations by location"
+    columns:
+      - name: hour_start_est
+        description: "Start of the hour (EST)"
+        data_tests:
+          - not_null
+      
+      - name: location_id
+        description: "Foreign key to location"
+        data_tests:
+          - not_null
+      
+      - name: observation_count
+        description: "Number of observations in this hour"
+        data_tests:
+          - not_null
+  
+  - name: int_weather_daily
+    description: "Daily weather summaries by location"
+    columns:
+      - name: observation_date
+        description: "Date of observations"
+        data_tests:
+          - not_null
+      
+      - name: location_id
+        description: "Foreign key to location"
+        data_tests:
+          - not_null
+      
+      - name: hours_observed
+        description: "Number of hours with data (should be ~24)"
+        data_tests:
+          - not_null
+
+  - name: int_precipitation_events
+    description: "Filtered view of precipitation events only"
+    columns:
+      - name: weather_id
+        description: "Unique identifier for weather observation"
+        data_tests:
+          - unique
+          - not_null
+      
+      - name: precip_intensity
+        description: "Precipitation intensity classification"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['None', 'Light', 'Moderate', 'Heavy', 'Violent']
+      
+      - name: is_precipitating
+        description: "Flag indicating active precipitation"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true]
+      
+      - name: precip_type
+        description: "Type of precipitation"
+        data_tests:
+          - not_null
