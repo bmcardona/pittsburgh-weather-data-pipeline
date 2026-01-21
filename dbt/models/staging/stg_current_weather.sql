@@ -13,7 +13,7 @@ cleaned as (
         weather_id,
         location_id,
         date_id,
-        observation_time_est,
+        observation_time as observation_time_est,
         
         -- Temperature metrics
         temperature_2m as temp_celsius,
