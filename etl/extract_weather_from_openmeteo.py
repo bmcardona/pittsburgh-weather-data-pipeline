@@ -109,7 +109,21 @@ def insert_or_update_location(cursor, neighborhood_name: str, latitude: float,
 def insert_weather_observation(cursor, location_id: int, weather_data: Dict) -> None:
     """Insert current weather observation"""
     current = weather_data.get('current', {})
-    observation_time = datetime.fromisoformat(current.get('time'))
+    time_str = current.get('time')
+    
+    if not time_str:
+        raise ValueError("No time field in weather data")
+    
+    # Parse the ISO format timestamp - handle both with and without timezone
+    try:
+        # Try parsing with timezone info first
+        if 'T' in time_str:
+            observation_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+        else:
+            observation_time = datetime.fromisoformat(time_str)
+    except Exception as e:
+        print(f"Error parsing time '{time_str}': {e}")
+        raise
     
     # Get or create date_id
     date_id = get_or_create_date(cursor, observation_time)
@@ -211,6 +225,9 @@ def main():
                 # Insert weather observation
                 insert_weather_observation(cursor, location_id, weather_data)
                 
+                # Commit after each successful insert to avoid losing all data on error
+                conn.commit()
+                
                 success_count += 1
                 print(f"✓ Processed {full_name} ({community_board})")
                 
@@ -220,8 +237,7 @@ def main():
                 conn.rollback()
                 continue
     
-    # Commit and close
-    conn.commit()
+    # Close connection
     cursor.close()
     conn.close()
     
