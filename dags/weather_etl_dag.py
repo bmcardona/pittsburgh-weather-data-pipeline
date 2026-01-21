@@ -26,6 +26,7 @@ def nyc_weather_pipeline():
     1. **Extract** - Fetch coordinates and weather data from API
     2. **Transform** - Structure data for database insertion
     3. **Load** - Insert weather observations into PostgreSQL
+    4. **Transform (dbt)** - Create analytics models
     
     **Schedule:** Runs every hour
     **Data Source:** Open-Meteo API
@@ -171,7 +172,68 @@ def nyc_weather_pipeline():
             conn.close()
     
     @task()
-    def report_summary(load_summary: Dict) -> None:
+    def run_dbt_models() -> Dict:
+        """
+        #### Run dbt Transformations
+        Transform raw weather data into analytics-ready models using dbt.
+        Runs staging → intermediate models.
+        """
+        import subprocess
+        
+        print("🔄 Running dbt transformations...")
+        print("="*60)
+        
+        # Run dbt models
+        result = subprocess.run(
+            [
+                'dbt', 'run',
+                '--profiles-dir', '/opt/airflow/dbt',
+                '--project-dir', '/opt/airflow/dbt'
+            ],
+            capture_output=True,
+            text=True,
+            cwd='/opt/airflow/dbt'
+        )
+        
+        print(result.stdout)
+        
+        if result.returncode != 0:
+            print(f"❌ dbt run failed:")
+            print(result.stderr)
+            raise Exception(f"dbt run failed with return code {result.returncode}")
+        
+        # Run dbt tests
+        print("\n🧪 Running dbt tests...")
+        test_result = subprocess.run(
+            [
+                'dbt', 'test',
+                '--profiles-dir', '/opt/airflow/dbt',
+                '--project-dir', '/opt/airflow/dbt'
+            ],
+            capture_output=True,
+            text=True,
+            cwd='/opt/airflow/dbt'
+        )
+        
+        print(test_result.stdout)
+        
+        # Don't fail pipeline if tests fail, just warn
+        if test_result.returncode != 0:
+            print("⚠️  Some dbt tests failed (see above)")
+        
+        dbt_summary = {
+            'run_success': result.returncode == 0,
+            'tests_passed': test_result.returncode == 0,
+            'timestamp': pendulum.now('America/New_York').isoformat()
+        }
+        
+        print("✅ dbt transformations complete!")
+        print("="*60)
+        
+        return dbt_summary
+    
+    @task()
+    def report_summary(load_summary: Dict, dbt_summary: Dict) -> None:
         """
         #### Report Summary
         Print final pipeline execution summary.
@@ -180,17 +242,24 @@ def nyc_weather_pipeline():
         print("🎉 NYC Weather Pipeline Complete!")
         print("="*60)
         print(f"Execution Time: {load_summary['timestamp']}")
-        print(f"Total Neighborhoods: {load_summary['total_observations']}")
-        print(f"Successfully Loaded: {load_summary['successful_loads']}")
-        print(f"Failed: {load_summary['failed_loads']}")
-        print(f"Success Rate: {load_summary['successful_loads']/load_summary['total_observations']*100:.1f}%")
+        print(f"\n📥 ETL Summary:")
+        print(f"   Total Neighborhoods: {load_summary['total_observations']}")
+        print(f"   Successfully Loaded: {load_summary['successful_loads']}")
+        print(f"   Failed: {load_summary['failed_loads']}")
+        print(f"   Success Rate: {load_summary['successful_loads']/load_summary['total_observations']*100:.1f}%")
+        print(f"\n🔄 dbt Summary:")
+        print(f"   Models Run: {'✓' if dbt_summary['run_success'] else '✗'}")
+        print(f"   Tests Passed: {'✓' if dbt_summary['tests_passed'] else '⚠️'}")
         print("="*60 + "\n")
     
     # Define task dependencies
     coords = extract_coordinates()
     weather = extract_weather(coords)
-    summary = load_weather(weather)
-    report_summary(summary)
+    load_summary = load_weather(weather)
+    dbt_summary = run_dbt_models()
+    
+    # Set dependencies: dbt runs after data load
+    load_summary >> dbt_summary >> report_summary(load_summary, dbt_summary)
 
 
 # Instantiate the DAG
