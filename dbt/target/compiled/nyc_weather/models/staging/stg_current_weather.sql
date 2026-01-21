@@ -11,7 +11,7 @@ cleaned as (
         weather_id,
         location_id,
         date_id,
-        observation_time,
+        observation_time as observation_time_est,
         
         -- Temperature metrics
         temperature_2m as temp_celsius,
@@ -48,7 +48,7 @@ cleaned as (
         surface_pressure as pressure_surface_hpa,
         
         -- Metadata
-        created_at as loaded_at_utc
+        created_at as loaded_at_est
         
     from source
 )
