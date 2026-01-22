@@ -8,3 +8,4 @@ __pycache__/
 /archive/learned.txt
 .user.yml
 /dbt/target
+/dbt/dbt_packages
