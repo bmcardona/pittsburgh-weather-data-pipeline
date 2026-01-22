@@ -1,239 +1,43 @@
-# ============================================================================
-# PROJECT IDENTIFICATION
-# ============================================================================
-name: 'nyc_weather'  # Use underscores for dbt project names (convention)
-config-version: 2
+name: 'nyc_weather'
 version: '1.0.0'
+config-version: 2
 
-# ============================================================================
-# PROFILE CONNECTION
-# ============================================================================
-profile: 'nyc_weather'  # Must match profile name in profiles.yml
+profile: 'weather'
 
-# ============================================================================
-# DIRECTORY PATHS
-# ============================================================================
 model-paths: ["models"]
-seed-paths: ["seeds"]
-test-paths: ["tests"]
 analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-# Optional paths (uncomment if needed)
-# docs-paths: ["docs"]  # Custom documentation files
-# asset-paths: ["assets"]  # Static files (images, etc.) for documentation
-# function-paths: ["functions"]  # User-defined functions (UDFs) - advanced feature
-
-# ============================================================================
-# PACKAGE MANAGEMENT
-# ============================================================================
-# packages-install-path: "dbt_packages"  # Where dbt installs packages from packages.yml
-
-# ============================================================================
-# BUILD ARTIFACTS & CLEANUP
-# ============================================================================
-target-path: "target"  # Where dbt puts compiled SQL and run artifacts
 clean-targets:
   - "target"
   - "dbt_packages"
 
-# ============================================================================
-# QUERY ANNOTATIONS
-# ============================================================================
-# query-comment:  # Add comments to queries dbt runs (useful for query monitoring)
-#   comment: "dbt run by {{ user.name }} at {{ run_started_at }}"
-#   append: true  # Add to existing comments vs replace
-
-# ============================================================================
-# VERSION REQUIREMENTS
-# ============================================================================
-# require-dbt-version: ">=1.7.0"  # Enforce minimum dbt version
-# require-dbt-version: [">=1.7.0", "<2.0.0"]  # Version range
-
-# ============================================================================
-# GLOBAL FLAGS
-# ============================================================================
-# flags:
-#   send_anonymous_usage_stats: false  # Opt out of telemetry
-#   use_colors: true  # Colorize CLI output
-#   printer_width: 80  # Width of CLI output
-#   warn_error: false  # Treat warnings as errors
-#   warn_error_options:  # Fine-grained warning control
-#     include: all
-#     exclude: []
-#   log_format: default  # Options: default, json, text
-#   debug: false  # Enable debug logging
-#   partial_parse: true  # Speed up parsing (cache manifest)
-#   static_parser: true  # Use static parser for speed
-#   profiles_dir: "/opt/airflow/dbt"  # Override profiles.yml location
-#   fail_fast: false  # Stop on first test failure
-#   version_check: true  # Check for dbt updates
-
-# ============================================================================
-# DBT CLOUD (not needed for dbt Core)
-# ============================================================================
-# dbt-cloud:
-#   project-id: 123456  # Your dbt Cloud project ID
-#   defer-env-id: 78910  # Environment to defer to for state comparison
-#   account-host: "cloud.getdbt.com"  # Or custom domain
-
-# ============================================================================
-# EXPOSURES
-# ============================================================================
-# exposures:
-#   +enabled: true  # Enable/disable all exposures globally
-
-# ============================================================================
-# QUOTING
-# ============================================================================
-# quoting:  # Control how dbt quotes database objects
-#   database: false  # Quote database names
-#   schema: false  # Quote schema names  
-#   identifier: false  # Quote table/view names
-#   # snowflake_ignore_case: false  # Snowflake-specific: ignore case in quoted identifiers
-
-# ============================================================================
-# METRICS (legacy - being replaced by semantic layer)
-# ============================================================================
-# metrics:
-#   +enabled: true
-
-# ============================================================================
-# MODELS CONFIGURATION
-# ============================================================================
 models:
   nyc_weather:
-    # Staging: Clean raw data, fast views
+    +materialized: view
+    +on_schema_change: "fail"
+    
     staging:
       +materialized: view
-      +schema: staging
-      # +tags: ["staging"]
-      # +meta:
-      #   owner: "data-engineering"
-      # +grants:
-      #   select: ["reporter", "analyst"]
+      +tags: ["staging"]
+      # REMOVE: +schema: staging
     
-    # Intermediate: Business logic, also views
     intermediate:
       +materialized: view
-      +schema: intermediate
-      # +tags: ["intermediate"]
+      +tags: ["intermediate"]
+      # REMOVE: +schema: intermediate
     
-    # Marts: Analytics-ready tables
     marts:
       +materialized: table
-      +schema: marts
-      # +tags: ["marts"]
-      
-      # Subdivisions within marts (optional)
-      # core:
-      #   +materialized: table
-      # aggregates:
-      #   +materialized: incremental  # For large tables
-      #   +on_schema_change: "append_new_columns"
-      #   +incremental_strategy: "merge"  # Options: merge, delete+insert, insert_overwrite
+      +tags: ["marts"]
+      # REMOVE: +schema: marts
 
-# Additional model configs (apply to all models unless overridden):
-# +persist_docs:
-#   relation: true  # Persist model descriptions to database
-#   columns: true  # Persist column descriptions to database
-# +full_refresh: false  # Control incremental model behavior
-# +on_configuration_change: apply  # Options: apply, continue, fail
+tests:
+  +store_failures: true
+  +schema: dbt_test_failures
 
-# ============================================================================
-# SEEDS CONFIGURATION
-# ============================================================================
-# seeds:
-#   nyc_weather:
-#     +schema: seeds
-#     +quote_columns: false  # Quote column names in seed files
-#     # +column_types:  # Override column types
-#     #   zipcode: varchar(5)
-#     #   amount: numeric(10,2)
-
-# ============================================================================
-# SEMANTIC MODELS (dbt 1.6+, MetricFlow)
-# ============================================================================
-# semantic-models:
-#   +enabled: true
-
-# ============================================================================
-# SAVED QUERIES (dbt 1.6+, used with semantic layer)
-# ============================================================================
-# saved-queries:
-#   +enabled: true
-
-# ============================================================================
-# SNAPSHOTS CONFIGURATION
-# ============================================================================
-# snapshots:
-#   nyc_weather:
-#     +target_schema: snapshots
-#     +strategy: timestamp  # Options: timestamp, check
-#     +updated_at: updated_at  # Column to use for timestamp strategy
-#     # +check_cols: ['status', 'is_active']  # For check strategy
-#     +unique_key: id
-#     +invalidate_hard_deletes: true
-
-# ============================================================================
-# SOURCES CONFIGURATION
-# ============================================================================
-# sources:
-#   nyc_weather:
-#     +enabled: true
-#     # +meta:
-#     #   contains_pii: true
-
-# ============================================================================
-# TESTS CONFIGURATION
-# ============================================================================
-# data_tests:  # Renamed from 'tests' in dbt 1.5+
-#   nyc_weather:
-#     +enabled: true
-#     +severity: warn  # Options: warn, error
-#     +error_if: ">10"  # Fail if more than 10 rows fail test
-#     +warn_if: ">0"  # Warn if any rows fail test
-#     +store_failures: true  # Save failed rows to database
-#     +schema: test_failures
-
-# ============================================================================
-# VARIABLES
-# ============================================================================
 vars:
-  # Project-specific variables accessible in models via {{ var('variable_name') }}
-  # start_date: "2024-01-01"
-  # end_date: "2026-12-31"
-  # temperature_threshold: 32
-  # exclude_test_data: true
-
-# ============================================================================
-# HOOKS (run SQL before/after dbt operations)
-# ============================================================================
-# on-run-start:
-#   - "{{ log('Starting dbt run...', info=true) }}"
-#   - "GRANT USAGE ON SCHEMA {{ target.schema }} TO analyst_role"
-  
-# on-run-end:
-#   - "{{ log('dbt run complete!', info=true) }}"
-#   - "{{ dbt_utils.log_audit_event() }}"  # Example: log to audit table
-
-# ============================================================================
-# DISPATCH (macro namespace resolution)
-# ============================================================================
-# dispatch:
-#   - macro_namespace: dbt_utils  # Override macro search order
-#     search_order: ['my_project', 'dbt_utils']
-#   - macro_namespace: dbt
-#     search_order: ['my_project', 'dbt']
-
-# ============================================================================
-# ACCESS CONTROL (dbt Cloud Enterprise feature)
-# ============================================================================
-# restrict-access: true  # Restrict who can view this project in dbt Cloud
-
-# ============================================================================
-# FUNCTIONS (User-Defined Functions - advanced feature)
-# ============================================================================
-# functions:
-#   +enabled: true
+  weather_timezone: "America/New_York"
