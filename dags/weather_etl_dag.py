@@ -170,7 +170,7 @@ def nyc_weather_pipeline():
         finally:
             cursor.close()
             conn.close()
-    
+
     @task()
     def run_dbt_models() -> Dict:
         """
@@ -248,19 +248,16 @@ def nyc_weather_pipeline():
         print(f"   Failed: {load_summary['failed_loads']}")
         print(f"   Success Rate: {load_summary['successful_loads']/load_summary['total_observations']*100:.1f}%")
         print(f"\n🔄 dbt Summary:")
-        print(f"   Models Run: {'✓' if dbt_summary['run_success'] else '✗'}")
-        print(f"   Tests Passed: {'✓' if dbt_summary['tests_passed'] else '⚠️'}")
+        print(f"   Models Run: {'✅' if dbt_summary['run_success'] else '❌'}")
+        print(f"   Tests Passed: {'✅' if dbt_summary['tests_passed'] else '⚠️'}")
         print("="*60 + "\n")
     
-    # Define task dependencies
     coords = extract_coordinates()
     weather = extract_weather(coords)
     load_summary = load_weather(weather)
     dbt_summary = run_dbt_models()
-    
-    # Set dependencies: dbt runs after data load
+
     load_summary >> dbt_summary >> report_summary(load_summary, dbt_summary)
 
 
-# Instantiate the DAG
 nyc_weather_pipeline()
