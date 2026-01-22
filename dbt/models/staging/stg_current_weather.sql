@@ -3,7 +3,7 @@
 ) }}
 
 with source as (
-    -- Reference the raw table using source() function
+    -- Use source() function instead of direct table reference
     select * from {{ source('weather', 'fact_current_weather') }}
 ),
 
@@ -26,7 +26,7 @@ cleaned as (
         
         -- Wind metrics
         wind_speed_10m as wind_speed_mps,
-        round(wind_speed_10m * 2.237, 1) as wind_speed_mph,  -- Convert m/s to mph
+        round(wind_speed_10m * 2.237, 1) as wind_speed_mph,
         wind_direction_10m as wind_direction_degrees,
         wind_gusts_10m as wind_gusts_mps,
         
