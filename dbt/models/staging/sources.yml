@@ -2,12 +2,63 @@ version: 2
 
 sources:
   - name: weather
-    description: "Raw weather data loaded by Airflow from Open-Meteo API"
-    database: weather_db
+    description: "Raw weather data from Open-Meteo API, loaded via Airflow"
+    database: weather_db  # Your database name
     schema: weather
+    
+    # Source freshness configuration (NEW in dbt 1.9+)
+    config:
+      freshness:
+        warn_after: {count: 2, period: hour}
+        error_after: {count: 4, period: hour}
+      loaded_at_field: created_at  # moved to config in v1.10
+    
     tables:
+      - name: fact_current_weather
+        description: "Current weather observations from Open-Meteo API"
+        config:
+          freshness:
+            warn_after: {count: 1, period: hour}
+            error_after: {count: 2, period: hour}
+        columns:
+          - name: weather_id
+            description: "Unique identifier for each weather observation"
+            data_tests:
+              - unique
+              - not_null
+          
+          - name: location_id
+            description: "Foreign key to dim_location"
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:  # ← Add this
+                    to: source('weather', 'dim_location')
+                    field: location_id
+          
+          - name: observation_time
+            description: "Timestamp of the weather observation (EST)"
+            data_tests:
+              - not_null
+          
+          - name: temperature_2m
+            description: "Temperature at 2m height in Celsius"
+            data_tests:
+              - not_null
+              # Reasonable range for NYC weather
+              - dbt_utils.accepted_range:
+                  min_value: -30
+                  max_value: 45
+          
+          - name: created_at
+            description: "Timestamp when record was loaded into warehouse"
+            data_tests:
+              - not_null
+      
       - name: dim_location
         description: "NYC neighborhoods with geographic coordinates"
+        config:
+          freshness: null  # Don't check freshness for dimension table
         columns:
           - name: location_id
             description: "Primary key"
@@ -16,7 +67,7 @@ sources:
               - not_null
           
           - name: neighborhood_name
-            description: "Name of NYC neighborhood"
+            description: "Name of the neighborhood"
             data_tests:
               - not_null
           
@@ -32,6 +83,8 @@ sources:
       
       - name: dim_date
         description: "Date dimension for time-based analysis"
+        config:
+          freshness: null  # Don't check freshness for dimension table
         columns:
           - name: date_id
             description: "Primary key"
@@ -41,47 +94,6 @@ sources:
           
           - name: date
             description: "Calendar date"
-            data_tests:
-              - unique
-              - not_null
-      
-      - name: fact_current_weather
-        description: "Current weather observations for NYC neighborhoods"
-        columns:
-          - name: weather_id
-            description: "Primary key"
-            data_tests:
-              - unique
-              - not_null
-          
-          - name: location_id
-            description: "Foreign key to dim_location"
-            data_tests:
-              - not_null
-              - relationships:
-                  arguments:
-                    to: source('weather', 'dim_location')
-                    field: location_id
-          
-          - name: date_id
-            description: "Foreign key to dim_date"
-            data_tests:
-              - not_null
-              - relationships:
-                  arguments:
-                    to: source('weather', 'dim_date')
-                    field: date_id
-          
-          - name: observation_time
-            description: "Timestamp of weather observation"
-            data_tests:
-              - not_null
-      
-      - name: fact_weather_history
-        description: "Historical weather data for trend analysis"
-        columns:
-          - name: history_id
-            description: "Primary key"
             data_tests:
               - unique
               - not_null
