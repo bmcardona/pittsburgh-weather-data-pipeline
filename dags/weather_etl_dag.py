@@ -10,7 +10,7 @@ from airflow.decorators import dag, task
 
 @dag(
     schedule="0 * * * *",  # Run every hour at minute 0
-    start_date=pendulum.datetime(2026, 1, 19, tz="America/New_York"),
+    start_date=pendulum.datetime(2026, 1, 26, tz="America/New_York"),
     catchup=False,
     tags=["weather", "nyc", "etl"],
     doc_md=__doc__,
@@ -36,43 +36,43 @@ def nyc_weather_pipeline():
     @task()
     def extract_coordinates() -> Dict:
         """
-        #### Extract Coordinates
-        Load NYC neighborhood coordinates from the coordinates.json file.
-        Returns a dictionary containing community boards and neighborhoods.
+        Extract neighborhood coordinates from JSON file.
+        
+        Loads NYC neighborhood location data including latitude, longitude, borough,
+        and community board information from the coordinates.json file. This data
+        is used to make targeted API calls for weather information.
+        
+        Returns:
+            Dict: Nested dictionary containing community boards with their associated
+                  neighborhoods and geographic coordinates
         """
-        # Import inside task to ensure path is available
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import load_coordinates
         
-        print("📍 Loading neighborhood coordinates...")
-        coordinates = load_coordinates()
-        
-        total_neighborhoods = sum(
-            len(board['neighborhoods']) 
-            for board in coordinates['community_boards']
-        )
-        
-        print(f"✓ Loaded {total_neighborhoods} neighborhoods from "
-              f"{len(coordinates['community_boards'])} community boards")
-        
-        return coordinates
+        return load_coordinates()
     
     @task()
     def extract_weather(coordinates: Dict) -> List[Dict]:
         """
-        #### Extract Weather Data
-        Fetch current weather data from Open-Meteo API for each neighborhood.
-        Returns a list of weather observations with location metadata.
+        Fetch current weather data from Open-Meteo API for all neighborhoods.
+        
+        Iterates through all neighborhoods in the coordinates dictionary and makes
+        individual API calls to fetch current weather conditions. Combines weather
+        data with location metadata for downstream processing.
+        
+        Args:
+            coordinates: Dictionary containing community boards and neighborhood coordinates
+        
+        Returns:
+            List[Dict]: List of weather observations, each containing neighborhood name,
+                       community board, coordinates, and raw weather data from API
         """
-        # Import inside task to ensure path is available
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import get_weather_data
         
-        print("🌤️ Fetching weather data from Open-Meteo API...")
         weather_observations = []
         
         for board in coordinates['community_boards']:
-            # FIX: Construct board_name from 'borough' and 'board' fields
             borough = board.get('borough', 'Unknown')
             board_code = board.get('board', 'Unknown')
             board_name = f"{borough} {board_code}"
@@ -92,29 +92,33 @@ def nyc_weather_pipeline():
                         'longitude': lon,
                         'weather_data': weather_data
                     })
-                    print(f"  ✓ {name} ({board_name}): {weather_data['current'].get('temperature_2m')}°C")
-                else:
-                    print(f"  ✗ {name}: Failed to fetch weather data")
         
-        print(f"\n✓ Successfully fetched weather for {len(weather_observations)} neighborhoods")
         return weather_observations
     
     @task()
     def load_weather(weather_observations: List[Dict]) -> Dict:
         """
-        #### Load Weather Data
-        Insert weather observations into PostgreSQL database.
-        Returns a summary of the load operation.
+        Load weather observations into PostgreSQL database.
+        
+        Inserts or updates location records in dim_location and weather observations
+        in fact_current_weather. Uses upsert logic to handle duplicate locations and
+        observation times. Commits after all successful inserts and tracks both
+        successful and failed loads.
+        
+        Args:
+            weather_observations: List of dictionaries containing neighborhood metadata
+                                 and weather data
+        
+        Returns:
+            Dict: Summary statistics including total observations, successful loads,
+                  failed loads, and timestamp
         """
-        # Import inside task to ensure path is available
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import (
             get_db_connection,
             insert_or_update_location,
             insert_weather_observation
         )
-        
-        print("💾 Loading weather data into PostgreSQL...")
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -145,7 +149,7 @@ def nyc_weather_pipeline():
                     
                 except Exception as e:
                     error_count += 1
-                    print(f"  ✗ Error loading {obs['neighborhood_name']}: {e}")
+                    print(f"Error loading {obs['neighborhood_name']}: {e}")
                     conn.rollback()
             
             # Commit all successful inserts
@@ -158,13 +162,6 @@ def nyc_weather_pipeline():
                 'timestamp': pendulum.now('America/New_York').isoformat()
             }
             
-            print(f"\n{'='*60}")
-            print(f"📊 Load Summary:")
-            print(f"   Total: {summary['total_observations']}")
-            print(f"   Success: {summary['successful_loads']} ✓")
-            print(f"   Failed: {summary['failed_loads']} ✗")
-            print(f"{'='*60}")
-            
             return summary
             
         finally:
@@ -174,14 +171,19 @@ def nyc_weather_pipeline():
     @task()
     def run_dbt_models() -> Dict:
         """
-        #### Run dbt Transformations
-        Transform raw weather data into analytics-ready models using dbt.
-        Runs staging → intermediate models.
+        Execute dbt transformations to create analytics-ready models.
+        
+        Runs dbt models to transform raw weather data from staging tables through
+        intermediate models to final fact and mart tables. Also executes dbt tests
+        to validate data quality. Tests failures are logged but don't fail the pipeline.
+        
+        Returns:
+            Dict: Summary containing success status of dbt run and tests, plus timestamp
+        
+        Raises:
+            Exception: If dbt run command fails with non-zero exit code
         """
         import subprocess
-        
-        print("🔄 Running dbt transformations...")
-        print("="*60)
         
         # Run dbt models
         result = subprocess.run(
@@ -198,12 +200,11 @@ def nyc_weather_pipeline():
         print(result.stdout)
         
         if result.returncode != 0:
-            print(f"❌ dbt run failed:")
+            print(f"dbt run failed:")
             print(result.stderr)
             raise Exception(f"dbt run failed with return code {result.returncode}")
         
         # Run dbt tests
-        print("\n🧪 Running dbt tests...")
         test_result = subprocess.run(
             [
                 'dbt', 'test',
@@ -219,7 +220,7 @@ def nyc_weather_pipeline():
         
         # Don't fail pipeline if tests fail, just warn
         if test_result.returncode != 0:
-            print("⚠️  Some dbt tests failed (see above)")
+            print("Warning: Some dbt tests failed")
         
         dbt_summary = {
             'run_success': result.returncode == 0,
@@ -227,29 +228,32 @@ def nyc_weather_pipeline():
             'timestamp': pendulum.now('America/New_York').isoformat()
         }
         
-        print("✅ dbt transformations complete!")
-        print("="*60)
-        
         return dbt_summary
     
     @task()
     def report_summary(load_summary: Dict, dbt_summary: Dict) -> None:
         """
-        #### Report Summary
-        Print final pipeline execution summary.
+        Print final pipeline execution summary to logs.
+        
+        Aggregates and displays statistics from both the ETL load process and
+        dbt transformations, including success rates and execution timestamps.
+        
+        Args:
+            load_summary: Summary statistics from the load_weather task
+            dbt_summary: Summary statistics from the run_dbt_models task
         """
         print("\n" + "="*60)
-        print("🎉 NYC Weather Pipeline Complete!")
+        print("NYC Weather Pipeline Complete")
         print("="*60)
         print(f"Execution Time: {load_summary['timestamp']}")
-        print(f"\n📥 ETL Summary:")
+        print(f"\nETL Summary:")
         print(f"   Total Neighborhoods: {load_summary['total_observations']}")
         print(f"   Successfully Loaded: {load_summary['successful_loads']}")
         print(f"   Failed: {load_summary['failed_loads']}")
         print(f"   Success Rate: {load_summary['successful_loads']/load_summary['total_observations']*100:.1f}%")
-        print(f"\n🔄 dbt Summary:")
-        print(f"   Models Run: {'✅' if dbt_summary['run_success'] else '❌'}")
-        print(f"   Tests Passed: {'✅' if dbt_summary['tests_passed'] else '⚠️'}")
+        print(f"\ndbt Summary:")
+        print(f"   Models Run: {'Success' if dbt_summary['run_success'] else 'Failed'}")
+        print(f"   Tests Passed: {'Yes' if dbt_summary['tests_passed'] else 'No'}")
         print("="*60 + "\n")
     
     coords = extract_coordinates()
