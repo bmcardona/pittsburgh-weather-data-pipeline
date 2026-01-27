@@ -1,0 +1,23 @@
+[theme]
+# Stripe-inspired professional theme
+base = "light"
+primaryColor = "#6366f1"
+backgroundColor = "#f8fafc"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#0f172a"
+font = "sans serif"
+
+[server]
+# Server settings
+maxUploadSize = 200
+enableXsrfProtection = true
+enableCORS = false
+
+[browser]
+# Browser settings
+gatherUsageStats = false
+
+[runner]
+# Performance settings
+magicEnabled = true
+fastReruns = true
