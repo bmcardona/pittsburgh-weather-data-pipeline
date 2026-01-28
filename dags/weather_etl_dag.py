@@ -1,8 +1,9 @@
 """
-NYC Weather Data Pipeline - TaskFlow API
+Pittsburgh Weather Data Pipeline - TaskFlow API
 Extracts current weather data from Open-Meteo API and loads into PostgreSQL
 """
 import sys
+import os
 import pendulum
 from typing import Dict, List
 from airflow.decorators import dag, task
@@ -10,16 +11,16 @@ from airflow.decorators import dag, task
 
 @dag(
     schedule="0 * * * *",  # Run every hour at minute 0
-    start_date=pendulum.datetime(2026, 1, 26, tz="America/New_York"),
+    start_date=pendulum.datetime(2026, 1, 28, tz="America/New_York"),
     catchup=False,
-    tags=["weather", "nyc", "etl"],
+    tags=["weather", "pittsburgh", "etl"],
     doc_md=__doc__,
 )
-def nyc_weather_pipeline():
+def pittsburgh_weather_pipeline():
     """
-    ### NYC Weather Data Pipeline
+    ### Pittsburgh Weather Data Pipeline
     
-    This pipeline extracts current weather data for NYC neighborhoods from the 
+    This pipeline extracts current weather data for Pittsburgh neighborhoods from the 
     Open-Meteo API and loads it into a PostgreSQL database.
     
     **Steps:**
@@ -30,21 +31,20 @@ def nyc_weather_pipeline():
     
     **Schedule:** Runs every hour
     **Data Source:** Open-Meteo API
-    **Database:** PostgreSQL (weather_db)
+    **Database:** PostgreSQL (weather_db.pittsburgh schema)
     """
     
     @task()
-    def extract_coordinates() -> Dict:
+    def extract_coordinates() -> List[Dict]:
         """
         Extract neighborhood coordinates from JSON file.
         
-        Loads NYC neighborhood location data including latitude, longitude, borough,
-        and community board information from the coordinates.json file. This data
-        is used to make targeted API calls for weather information.
+        Loads Pittsburgh neighborhood location data including latitude and longitude
+        from the coordinates.json file. This data is used to make targeted API calls 
+        for weather information.
         
         Returns:
-            Dict: Nested dictionary containing community boards with their associated
-                  neighborhoods and geographic coordinates
+            List[Dict]: List of neighborhoods with name, latitude, and longitude
         """
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import load_coordinates
@@ -52,46 +52,40 @@ def nyc_weather_pipeline():
         return load_coordinates()
     
     @task()
-    def extract_weather(coordinates: Dict) -> List[Dict]:
+    def extract_weather(neighborhoods: List[Dict]) -> List[Dict]:
         """
         Fetch current weather data from Open-Meteo API for all neighborhoods.
         
-        Iterates through all neighborhoods in the coordinates dictionary and makes
-        individual API calls to fetch current weather conditions. Combines weather
-        data with location metadata for downstream processing.
+        Iterates through all neighborhoods and makes individual API calls to fetch 
+        current weather conditions. Combines weather data with location metadata 
+        for downstream processing.
         
         Args:
-            coordinates: Dictionary containing community boards and neighborhood coordinates
+            neighborhoods: List of dictionaries with neighborhood name and coordinates
         
         Returns:
             List[Dict]: List of weather observations, each containing neighborhood name,
-                       community board, coordinates, and raw weather data from API
+                       coordinates, and raw weather data from API
         """
         sys.path.insert(0, '/opt/airflow/etl')
         from extract_weather_from_openmeteo import get_weather_data
         
         weather_observations = []
         
-        for board in coordinates['community_boards']:
-            borough = board.get('borough', 'Unknown')
-            board_code = board.get('board', 'Unknown')
-            board_name = f"{borough} {board_code}"
+        for neighborhood in neighborhoods:
+            name = neighborhood['name']
+            lat = neighborhood['latitude']
+            lon = neighborhood['longitude']
             
-            for neighborhood in board['neighborhoods']:
-                name = neighborhood['name']
-                lat = neighborhood['latitude']
-                lon = neighborhood['longitude']
-                
-                weather_data = get_weather_data(lat, lon)
-                
-                if weather_data:
-                    weather_observations.append({
-                        'neighborhood_name': name,
-                        'community_board': board_name,
-                        'latitude': lat,
-                        'longitude': lon,
-                        'weather_data': weather_data
-                    })
+            weather_data = get_weather_data(lat, lon)
+            
+            if weather_data:
+                weather_observations.append({
+                    'neighborhood_name': name,
+                    'latitude': lat,
+                    'longitude': lon,
+                    'weather_data': weather_data
+                })
         
         return weather_observations
     
@@ -120,6 +114,9 @@ def nyc_weather_pipeline():
             insert_weather_observation
         )
         
+        # Get schema from environment variable
+        schema = os.getenv('WEATHER_DB_SCHEMA', 'pittsburgh')
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
@@ -135,14 +132,15 @@ def nyc_weather_pipeline():
                         obs['neighborhood_name'],
                         obs['latitude'],
                         obs['longitude'],
-                        obs['community_board']
+                        schema
                     )
                     
                     # Insert weather observation
                     insert_weather_observation(
                         cursor,
                         location_id,
-                        obs['weather_data']
+                        obs['weather_data'],
+                        schema
                     )
                     
                     success_count += 1
@@ -243,7 +241,7 @@ def nyc_weather_pipeline():
             dbt_summary: Summary statistics from the run_dbt_models task
         """
         print("\n" + "="*60)
-        print("NYC Weather Pipeline Complete")
+        print("Pittsburgh Weather Pipeline Complete")
         print("="*60)
         print(f"Execution Time: {load_summary['timestamp']}")
         print(f"\nETL Summary:")
@@ -264,4 +262,4 @@ def nyc_weather_pipeline():
     load_summary >> dbt_summary >> report_summary(load_summary, dbt_summary)
 
 
-nyc_weather_pipeline()
+pittsburgh_weather_pipeline()
