@@ -23,17 +23,14 @@ models:
     staging:
       +materialized: view
       +tags: ["staging"]
-      # REMOVE: +schema: staging
     
     intermediate:
       +materialized: view
       +tags: ["intermediate"]
-      # REMOVE: +schema: intermediate
     
     marts:
       +materialized: table
       +tags: ["marts"]
-      # REMOVE: +schema: marts
 
 tests:
   +store_failures: true
