@@ -15,7 +15,6 @@ readings as (
 
         -- Location Details
         c.neighborhood_name,
-        c.community_board,
         c.latitude,
         c.longitude,
         c.timezone,

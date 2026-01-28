@@ -16,7 +16,6 @@ current_weather_and_locations as (
     select
         cw.*,
         l.neighborhood_name,
-        l.community_board,
         l.latitude,
         l.longitude,
         l.timezone,
