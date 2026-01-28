@@ -1,4 +1,4 @@
-name: 'nyc_weather'
+name: 'pittsburgh_weather'
 version: '1.0.0'
 config-version: 2
 
@@ -16,7 +16,7 @@ clean-targets:
   - "dbt_packages"
 
 models:
-  nyc_weather:
+  pittsburgh_weather:
     +materialized: view
     +on_schema_change: "fail"
     
