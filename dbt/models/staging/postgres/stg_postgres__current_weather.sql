@@ -1,7 +1,7 @@
 with source as (
 
-    select * from {{ source('weather','fact_current_weather') }}
-    
+    select * from {{ source('pittsburgh','fact_current_weather') }}
+
 ),
 
 cleaned as (

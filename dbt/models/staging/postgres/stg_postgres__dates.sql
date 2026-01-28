@@ -1,6 +1,6 @@
 with source as (
 
-    select * from {{ source('weather', 'dim_date') }}
+    select * from {{ source('pittsburgh', 'dim_date') }}
 
 ),
 
