@@ -9,7 +9,7 @@ with locations as (
         community_board,
         -- Extract borough from community_board field (e.g., "Manhattan 1" -> "Manhattan")
         split_part(community_board, ' ', 1) as borough
-    from {{ ref('stg_locations') }}
+    from {{ ref('stg_postgres__locations') }}
 ),
 
 daily_with_borough as (
