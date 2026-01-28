@@ -1,24 +1,17 @@
 """
-Weather data extraction from Open-Meteo API
+Weather data extraction from Open-Meteo API for Pittsburgh neighborhoods
 """
 import requests
 import json
 import psycopg2
 from datetime import datetime
 import os
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 
 def get_db_connection():
     """
     Create database connection using environment variables.
-    
-    Reads connection parameters from environment variables:
-    - WEATHER_DB_HOST: Database host address
-    - WEATHER_DB_PORT: Database port number
-    - WEATHER_DB_NAME: Database name
-    - WEATHER_DB_USER: Database username
-    - WEATHER_DB_PASSWORD: Database password
     
     Returns:
         psycopg2.connection: Active database connection
@@ -35,10 +28,6 @@ def get_db_connection():
 def get_weather_data(latitude: float, longitude: float) -> Optional[Dict]:
     """
     Fetch current weather data from Open-Meteo API.
-    
-    Makes a request to the Open-Meteo forecast endpoint for a specific location,
-    requesting current conditions including temperature, humidity, wind, precipitation,
-    and atmospheric pressure data.
     
     Args:
         latitude: Latitude coordinate in decimal degrees
@@ -83,38 +72,38 @@ def get_weather_data(latitude: float, longitude: float) -> Optional[Dict]:
         return None
 
 
-def load_coordinates(coordinates_path: str = '/opt/airflow/etl/coordinates.json') -> Dict:
+def load_coordinates(coordinates_path: str = '/opt/airflow/etl/coordinates.json') -> list:
     """
     Load neighborhood coordinates from JSON file.
-    
-    Reads a JSON file containing NYC neighborhood data organized by community boards,
-    including neighborhood names, latitude/longitude coordinates, and borough information.
     
     Args:
         coordinates_path: Path to the JSON file containing coordinate data
     
     Returns:
-        Dict: Parsed JSON data containing community boards and neighborhoods
+        list: List of neighborhoods with name, latitude, longitude
     
     Raises:
         FileNotFoundError: If the coordinates file doesn't exist
         json.JSONDecodeError: If the file contains invalid JSON
+        KeyError: If required fields are missing
     """
     with open(coordinates_path, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+    
+    if 'neighborhoods' not in data:
+        raise KeyError("coordinates.json must contain 'neighborhoods' key")
+    
+    return data['neighborhoods']
 
 
-def get_or_create_date(cursor, observation_time: datetime) -> int:
+def get_or_create_date(cursor, observation_time: datetime, schema: str) -> int:
     """
     Get or create date dimension record and return date_id.
-    
-    Implements a lookup-or-insert pattern for the date dimension table. First attempts
-    to find an existing date record, and if not found, creates a new one with derived
-    attributes like day of week, quarter, and weekend flag.
     
     Args:
         cursor: Active database cursor
         observation_time: DateTime object for the weather observation
+        schema: Database schema name
     
     Returns:
         int: The date_id (primary key) for the date dimension record
@@ -122,8 +111,8 @@ def get_or_create_date(cursor, observation_time: datetime) -> int:
     date_only = observation_time.date()
     
     # Try to get existing date_id
-    cursor.execute("""
-        SELECT date_id FROM weather.dim_date WHERE date = %s
+    cursor.execute(f"""
+        SELECT date_id FROM {schema}.dim_date WHERE date = %s
     """, (date_only,))
     
     result = cursor.fetchone()
@@ -131,20 +120,11 @@ def get_or_create_date(cursor, observation_time: datetime) -> int:
         return result[0]
     
     # Create new date dimension record
-    cursor.execute("""
-        INSERT INTO weather.dim_date (
-            date, 
-            year, 
-            month, 
-            day, 
-            day_of_week, 
-            day_name, 
-            week_of_year, 
-            quarter, 
-            is_weekend
-        ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s
-        )
+    cursor.execute(f"""
+        INSERT INTO {schema}.dim_date (
+            date, year, month, day, day_of_week, day_name, 
+            week_of_year, quarter, is_weekend
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING date_id
     """, (
         date_only,
@@ -162,53 +142,44 @@ def get_or_create_date(cursor, observation_time: datetime) -> int:
 
 
 def insert_or_update_location(cursor, neighborhood_name: str, latitude: float, 
-                              longitude: float, community_board: Optional[str] = None) -> int:
+                              longitude: float, schema: str) -> int:
     """
     Insert or update location dimension record and return location_id.
     
-    Uses PostgreSQL's ON CONFLICT (upsert) to either insert a new location or update
-    an existing one if the lat/lon coordinates already exist. Updates the neighborhood
-    name, community board, and updated_at timestamp on conflict.
-    
     Args:
         cursor: Active database cursor
-        neighborhood_name: Full name of the neighborhood (e.g., "Manhattan - Upper East Side")
+        neighborhood_name: Name of the neighborhood (e.g., "Shadyside")
         latitude: Latitude coordinate in decimal degrees
         longitude: Longitude coordinate in decimal degrees
-        community_board: Optional community board identifier (e.g., "Manhattan 8")
+        schema: Database schema name
     
     Returns:
         int: The location_id (primary key) for the location dimension record
     """
-    cursor.execute("""
-        INSERT INTO weather.dim_location (neighborhood_name, latitude, longitude, community_board)
-        VALUES (%s, %s, %s, %s)
+    cursor.execute(f"""
+        INSERT INTO {schema}.dim_location (neighborhood_name, latitude, longitude)
+        VALUES (%s, %s, %s)
         ON CONFLICT (latitude, longitude) 
         DO UPDATE SET 
             neighborhood_name = EXCLUDED.neighborhood_name,
-            community_board = EXCLUDED.community_board,
             updated_at = CURRENT_TIMESTAMP
         RETURNING location_id
-    """, (neighborhood_name, latitude, longitude, community_board))
+    """, (neighborhood_name, latitude, longitude))
     return cursor.fetchone()[0]
 
 
-def insert_weather_observation(cursor, location_id: int, weather_data: Dict) -> None:
+def insert_weather_observation(cursor, location_id: int, weather_data: Dict, schema: str) -> None:
     """
     Insert or update current weather observation in the fact table.
-    
-    Parses weather data from the Open-Meteo API response and inserts it into the
-    fact_current_weather table. Uses ON CONFLICT to update existing records if
-    an observation already exists for the same location and time.
     
     Args:
         cursor: Active database cursor
         location_id: Foreign key reference to dim_location
         weather_data: Raw JSON response from Open-Meteo API containing current weather
+        schema: Database schema name
     
     Raises:
         ValueError: If the weather data doesn't contain a time field
-        Exception: If timestamp parsing fails
     """
     current = weather_data.get('current', {})
     time_str = current.get('time')
@@ -216,21 +187,17 @@ def insert_weather_observation(cursor, location_id: int, weather_data: Dict) -> 
     if not time_str:
         raise ValueError("No time field in weather data")
     
-    # Parse the ISO format timestamp - handle both with and without timezone
-    try:
-        if 'T' in time_str:
-            observation_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-        else:
-            observation_time = datetime.fromisoformat(time_str)
-    except Exception as e:
-        print(f"Error parsing time '{time_str}': {e}")
-        raise
+    # Parse the ISO format timestamp
+    if 'T' in time_str:
+        observation_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+    else:
+        observation_time = datetime.fromisoformat(time_str)
     
     # Get or create date_id
-    date_id = get_or_create_date(cursor, observation_time)
+    date_id = get_or_create_date(cursor, observation_time, schema)
     
-    cursor.execute("""
-        INSERT INTO weather.fact_current_weather (
+    cursor.execute(f"""
+        INSERT INTO {schema}.fact_current_weather (
             location_id, date_id, observation_time,
             temperature_2m, apparent_temperature, relative_humidity_2m,
             wind_speed_10m, wind_direction_10m, wind_gusts_10m,
@@ -273,26 +240,25 @@ def main():
     """
     Main ETL process for extracting weather data from Open-Meteo API.
     
-    Orchestrates the complete ETL pipeline:
-    1. Loads neighborhood coordinates from JSON file
-    2. Establishes database connection
-    3. Iterates through all neighborhoods by community board
-    4. Fetches current weather data for each location
-    5. Upserts location and weather observation records
-    6. Commits after each successful location to avoid data loss
-    7. Rolls back and continues on errors
-    
-    Prints summary statistics upon completion.
+    Loads Pittsburgh neighborhood coordinates, fetches current weather for each,
+    and stores in the database.
     """
+    # Get schema from environment variable (defaults to 'pittsburgh')
+    schema = os.getenv('WEATHER_DB_SCHEMA', 'pittsburgh')
+    print(f"Using schema: {schema}")
+    
     # Load coordinates
     try:
-        data = load_coordinates()
-        community_boards = data.get('community_boards', [])
+        neighborhoods = load_coordinates()
+        print(f"Loaded {len(neighborhoods)} Pittsburgh neighborhoods")
     except FileNotFoundError:
-        print("Error: coordinates.json file not found")
+        print("ERROR: coordinates.json file not found")
         return
     except json.JSONDecodeError:
-        print("Error: Invalid JSON in coordinates file")
+        print("ERROR: Invalid JSON in coordinates file")
+        return
+    except KeyError as e:
+        print(f"ERROR: {e}")
         return
     
     # Connect to database
@@ -300,56 +266,49 @@ def main():
         conn = get_db_connection()
         cursor = conn.cursor()
     except Exception as e:
-        print(f"Database connection error: {e}")
+        print(f"ERROR: Database connection failed: {e}")
         return
     
-    # Process each location
+    # Process each neighborhood
     success_count = 0
     error_count = 0
     
-    for cb in community_boards:
-        borough = cb.get('borough')
-        board = cb.get('board')
-        community_board = f"{borough} {board}"
-        
-        for neighborhood_data in cb.get('neighborhoods', []):
-            try:
-                neighborhood_name = neighborhood_data['name']
-                latitude = neighborhood_data['latitude']
-                longitude = neighborhood_data['longitude']
-                
-                full_name = f"{borough} - {neighborhood_name}"
-                
-                # Fetch weather data
-                weather_data = get_weather_data(latitude, longitude)
-                if not weather_data:
-                    error_count += 1
-                    continue
-                
-                # Insert/update location
-                location_id = insert_or_update_location(
-                    cursor, full_name, latitude, longitude, community_board
-                )
-                
-                # Insert weather observation
-                insert_weather_observation(cursor, location_id, weather_data)
-                
-                # Commit after each successful insert to avoid losing all data on error
-                conn.commit()
-                
-                success_count += 1
-                
-            except Exception as e:
-                print(f"Error processing {neighborhood_name}: {e}")
+    for neighborhood in neighborhoods:
+        try:
+            name = neighborhood['name']
+            lat = neighborhood['latitude']
+            lon = neighborhood['longitude']
+            
+            # Fetch weather data
+            weather_data = get_weather_data(lat, lon)
+            if not weather_data:
                 error_count += 1
-                conn.rollback()
                 continue
+            
+            # Insert/update location
+            location_id = insert_or_update_location(cursor, name, lat, lon, schema)
+            
+            # Insert weather observation
+            insert_weather_observation(cursor, location_id, weather_data, schema)
+            
+            # Commit after each successful insert
+            conn.commit()
+            success_count += 1
+            print(f"✓ {name}")
+            
+        except Exception as e:
+            print(f"✗ {name}: {e}")
+            error_count += 1
+            conn.rollback()
+            continue
     
     # Close connection
     cursor.close()
     conn.close()
     
+    print(f"\n{'='*50}")
     print(f"ETL Complete: {success_count} successful, {error_count} errors")
+    print(f"{'='*50}")
 
 
 if __name__ == "__main__":
