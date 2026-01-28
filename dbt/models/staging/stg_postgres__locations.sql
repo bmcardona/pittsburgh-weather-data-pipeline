@@ -1,12 +1,11 @@
-{{ config(
-    materialized='view'
-) }}
-
 with source as (
+
     select * from {{ source('weather', 'dim_location') }}
+
 ),
 
-cleaned as (
+renamed as (
+
     select
         location_id,
         neighborhood_name,
@@ -16,7 +15,9 @@ cleaned as (
         timezone,
         created_at,
         updated_at
+
     from source
+
 )
 
-select * from cleaned
+select * from renamed

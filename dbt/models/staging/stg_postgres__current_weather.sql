@@ -1,10 +1,11 @@
-{{ config(
-    materialized='view'
-) }}
 
-with source as (
-    -- Use source() function instead of direct table reference
-    select * from {{ source('weather', 'fact_current_weather') }}
+
+with 
+
+source as (
+
+    select * from {{ source('weather','fact_current_weather') }}
+
 ),
 
 cleaned as (
