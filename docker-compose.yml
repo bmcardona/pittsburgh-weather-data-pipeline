@@ -17,6 +17,7 @@ x-airflow-common:
     WEATHER_DB_NAME: ${WEATHER_DB_NAME}
     WEATHER_DB_USER: ${WEATHER_DB_USER}
     WEATHER_DB_PASSWORD: ${WEATHER_DB_PASSWORD}
+    WEATHER_DB_SCHEMA: ${WEATHER_DB_SCHEMA}  # NEW!
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -49,7 +50,7 @@ services:
     ports: 
       - "${POSTGRES_PORT}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Fixed path!
+      - postgres_data:/var/lib/postgresql/data
       - ./database/init-multiple-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh
       - ./database/init.sql:/docker-entrypoint-initdb.d/02-init-weather-schema.sql
     healthcheck:
@@ -176,6 +177,7 @@ services:
         - WEATHER_DB_NAME=weather_db
         - WEATHER_DB_USER=weather_user
         - WEATHER_DB_PASSWORD=${WEATHER_DB_PASSWORD}
+        - WEATHER_DB_SCHEMA=${WEATHER_DB_SCHEMA}  # NEW!
       depends_on:
         - postgres
       volumes:
