@@ -30,7 +30,7 @@ docker exec -it weather_airflow_scheduler dbt run --select mart_hourly_weather -
 
 ### Generate *__sources.yml
 # Creates _sources.yml with all tables and columns from the 'weather' schema
-dbt run-operation generate_source --args '{"schema_name": "weather", "generate_columns": true}' | pbcopy
+dbt run-operation generate_source --args '{"schema_name": "pittsburgh", "generate_columns": true}'
 
 ### Generate stg_*.sql files
 # Creates staging SQL files with all columns pre-populated from source tables
