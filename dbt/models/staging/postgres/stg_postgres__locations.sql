@@ -1,6 +1,6 @@
 with source as (
 
-    select * from {{ source('weather', 'dim_location') }}
+    select * from {{ source('pittsburgh', 'dim_location') }}
 
 ),
 
@@ -9,7 +9,6 @@ renamed as (
     select
         location_id,
         neighborhood_name,
-        community_board,
         latitude,
         longitude,
         timezone,
