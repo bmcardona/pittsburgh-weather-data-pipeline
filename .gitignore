@@ -9,3 +9,4 @@ __pycache__/
 .user.yml
 /dbt/target
 /dbt/dbt_packages
+/venv
