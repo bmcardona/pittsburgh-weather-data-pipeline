@@ -5,22 +5,13 @@ weather:
   outputs:
     dev:
       type: postgres
-      host: postgres
+      host: localhost
       port: 5432
       user: "{{ env_var('WEATHER_DB_USER') }}"
       password: "{{ env_var('WEATHER_DB_PASSWORD') }}"
       dbname: "{{ env_var('WEATHER_DB_NAME') }}"
-      # user: ${WEATHER_DB_USER}
-      # password: ${WEATHER_DB_PASSWORD}
-      # dbname: ${WEATHER_DB_NAME} # or database instead of dbname
       schema: weather_analytics
       threads: 4
-      keepalives_idle: 0 # default 0, indicating the system default. See below
+      keepalives_idle: 0 # default 0, indicating the system default. 
       connect_timeout: 10 # default 10 seconds
       retries: 1  # default 1 retry on error/timeout when opening connections
-      # search_path: [optional, override the default postgres search_path]
-      # role: [optional, set the role dbt assumes when executing queries]
-      # sslmode: [optional, set the sslmode used to connect to the database]
-      # sslcert: [optional, set the sslcert to control the certifcate file location]
-      # sslkey: [optional, set the sslkey to control the location of the private key]
-      # sslrootcert: [optional, set the sslrootcert config value to a new file path in order to customize the file location that contain root certificates]
