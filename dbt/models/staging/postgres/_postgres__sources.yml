@@ -1,0 +1,91 @@
+version: 2
+
+sources:
+  - name: weather
+    tables:
+      - name: dim_date
+        columns:
+          - name: date_id
+            data_type: integer
+          - name: date
+            data_type: date
+          - name: year
+            data_type: integer
+          - name: month
+            data_type: integer
+          - name: day
+            data_type: integer
+          - name: day_of_week
+            data_type: integer
+          - name: day_name
+            data_type: character varying
+          - name: week_of_year
+            data_type: integer
+          - name: quarter
+            data_type: integer
+          - name: is_weekend
+            data_type: boolean
+          - name: is_holiday
+            data_type: boolean
+
+      - name: dim_location
+        columns:
+          - name: location_id
+            data_type: integer
+          - name: neighborhood_name
+            data_type: character varying
+          - name: community_board
+            data_type: character varying
+          - name: latitude
+            data_type: numeric
+          - name: longitude
+            data_type: numeric
+          - name: timezone
+            data_type: character varying
+          - name: created_at
+            data_type: timestamp without time zone
+          - name: updated_at
+            data_type: timestamp without time zone
+
+      - name: fact_current_weather
+        columns:
+          - name: weather_id
+            data_type: bigint
+          - name: location_id
+            data_type: integer
+          - name: date_id
+            data_type: integer
+          - name: observation_time
+            data_type: timestamp without time zone
+          - name: temperature_2m
+            data_type: numeric
+          - name: apparent_temperature
+            data_type: numeric
+          - name: relative_humidity_2m
+            data_type: numeric
+          - name: wind_speed_10m
+            data_type: numeric
+          - name: wind_direction_10m
+            data_type: numeric
+          - name: wind_gusts_10m
+            data_type: numeric
+          - name: precipitation
+            data_type: numeric
+          - name: rain
+            data_type: numeric
+          - name: showers
+            data_type: numeric
+          - name: snowfall
+            data_type: numeric
+          - name: weather_code
+            data_type: integer
+          - name: cloud_cover
+            data_type: numeric
+          - name: is_day
+            data_type: integer
+          - name: pressure_msl
+            data_type: numeric
+          - name: surface_pressure
+            data_type: numeric
+          - name: created_at
+            data_type: timestamp without time zone
