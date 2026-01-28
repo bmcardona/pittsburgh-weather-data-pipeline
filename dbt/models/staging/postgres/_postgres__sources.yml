@@ -1,7 +1,7 @@
 version: 2
 
 sources:
-  - name: weather
+  - name: pittsburgh
     tables:
       - name: dim_date
         columns:
