@@ -5,7 +5,7 @@
 with latest_observations as (
     -- Get the most recent observation time across all locations
     select max(observation_time_est) as latest_time
-    from {{ ref('stg_current_weather') }}
+    from {{ ref('stg_postgres__current_weather') }}
 ),
 
 current_weather as (
@@ -16,7 +16,7 @@ current_weather as (
         l.latitude,
         l.longitude
     from {{ ref('int_weather_enriched') }} e
-    inner join {{ ref('stg_locations') }} l 
+    inner join {{ ref('stg_postgres__locations') }} l 
         on e.location_id = l.location_id
     inner join latest_observations lo
         on e.observation_time_est = lo.latest_time

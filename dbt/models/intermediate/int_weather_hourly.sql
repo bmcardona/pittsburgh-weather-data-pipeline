@@ -7,7 +7,7 @@ with enriched as (
 ),
 
 locations as (
-    select * from {{ ref('stg_locations') }}
+    select * from {{ ref('stg_postgres__locations') }}
 ),
 
 -- First, find the latest observation for each hour/location

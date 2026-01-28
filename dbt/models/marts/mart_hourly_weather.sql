@@ -16,7 +16,7 @@ SELECT
     dl.latitude,
     dl.longitude
 FROM {{ ref('int_weather_enriched') }} AS iwe
-JOIN {{ ref('stg_locations') }} AS dl 
+JOIN {{ ref('stg_postgres__locations') }} AS dl 
     ON iwe.location_id = dl.location_id
 WHERE DATE(iwe.observation_time_est) = CURRENT_DATE
 ORDER BY iwe.observation_time_est, dl.neighborhood_name

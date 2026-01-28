@@ -3,7 +3,7 @@
 ) }}
 
 with weather as (
-    select * from {{ ref('stg_current_weather') }}
+    select * from {{ ref('stg_postgres__current_weather') }}
 ),
 
 enriched as (
