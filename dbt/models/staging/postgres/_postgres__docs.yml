@@ -1,0 +1,180 @@
+version: 2
+
+models:
+  - name: stg_postgres__current_weather
+    description: ""
+    columns:
+      - name: weather_id
+        data_type: bigint
+        description: ""
+
+      - name: location_id
+        data_type: integer
+        description: ""
+
+      - name: date_id
+        data_type: integer
+        description: ""
+
+      - name: observation_time_est
+        data_type: timestamp without time zone
+        description: ""
+
+      - name: temp_celsius
+        data_type: numeric
+        description: ""
+
+      - name: temp_fahrenheit
+        data_type: numeric
+        description: ""
+
+      - name: feels_like_celsius
+        data_type: numeric
+        description: ""
+
+      - name: feels_like_fahrenheit
+        data_type: numeric
+        description: ""
+
+      - name: humidity_percent
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_mps
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_mph
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_degrees
+        data_type: numeric
+        description: ""
+
+      - name: wind_gusts_mps
+        data_type: numeric
+        description: ""
+
+      - name: total_precip_mm
+        data_type: numeric
+        description: ""
+
+      - name: rain_mm
+        data_type: numeric
+        description: ""
+
+      - name: showers_mm
+        data_type: numeric
+        description: ""
+
+      - name: snowfall_mm
+        data_type: numeric
+        description: ""
+
+      - name: weather_code
+        data_type: integer
+        description: ""
+
+      - name: cloud_cover_percent
+        data_type: numeric
+        description: ""
+
+      - name: day_night
+        data_type: text
+        description: ""
+
+      - name: pressure_sea_level_hpa
+        data_type: numeric
+        description: ""
+
+      - name: pressure_surface_hpa
+        data_type: numeric
+        description: ""
+
+      - name: loaded_at_est
+        data_type: timestamp without time zone
+        description: ""
+
+  - name: stg_postgres__dates
+    description: ""
+    columns:
+      - name: date_id
+        data_type: integer
+        description: ""
+
+      - name: date
+        data_type: date
+        description: ""
+
+      - name: year
+        data_type: integer
+        description: ""
+
+      - name: month
+        data_type: integer
+        description: ""
+
+      - name: day
+        data_type: integer
+        description: ""
+
+      - name: day_of_week
+        data_type: integer
+        description: ""
+
+      - name: day_name
+        data_type: character varying
+        description: ""
+
+      - name: week_of_year
+        data_type: integer
+        description: ""
+
+      - name: quarter
+        data_type: integer
+        description: ""
+
+      - name: is_weekend
+        data_type: boolean
+        description: ""
+
+      - name: is_holiday
+        data_type: boolean
+        description: ""
+
+  - name: stg_postgres__locations
+    description: ""
+    columns:
+      - name: location_id
+        data_type: integer
+        description: ""
+
+      - name: neighborhood_name
+        data_type: character varying
+        description: ""
+
+      - name: community_board
+        data_type: character varying
+        description: ""
+
+      - name: latitude
+        data_type: numeric
+        description: ""
+
+      - name: longitude
+        data_type: numeric
+        description: ""
+
+      - name: timezone
+        data_type: character varying
+        description: ""
+
+      - name: created_at
+        data_type: timestamp without time zone
+        description: ""
+
+      - name: updated_at
+        data_type: timestamp without time zone
+        description: ""
+
