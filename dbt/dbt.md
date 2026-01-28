@@ -28,7 +28,7 @@ http://localhost:8082/
 docker exec -it weather_airflow_scheduler dbt run --select mart_hourly_weather --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt
 
 
-### Generate _sources.yml
+### Generate *__sources.yml
 # Creates _sources.yml with all tables and columns from the 'weather' schema
 dbt run-operation generate_source --args '{"schema_name": "weather", "generate_columns": true}' | pbcopy
 
@@ -38,7 +38,7 @@ dbt run-operation generate_base_model --args '{"source_name": "weather", "table_
 dbt run-operation generate_base_model --args '{"source_name": "weather", "table_name": "dim_location"}' | pbcopy
 dbt run-operation generate_base_model --args '{"source_name": "weather", "table_name": "dim_date"}' | pbcopy
 
-### Generate _staging.yml
+### Generate *__docs.yml
 # Run staging models, then generate documentation YAML
 dbt run --select staging
 dbt run-operation generate_model_yaml --args '{"model_names": ["stg_postgres__current_weather", "stg_postgres__dates", "stg_postgres__locations"]}' | pbcopy
