@@ -25,20 +25,26 @@ http://localhost:8082/
 
 ## Run Specific dbt Model in Airflow Container
 # Execute a single dbt model (mart_hourly_weather) from within the Airflow scheduler container
-docker exec -it weather_airflow_scheduler dbt run --select mart_hourly_weather --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt
+docker exec -it weather_airflow_scheduler dbt run --select int_weather_forecast_joined_locations --project-dir /opt/airflow/dbt --profiles-dir /opt/airflow/dbt
 
-
-### Generate *__sources.yml
-# Creates _sources.yml with all tables and columns from the 'weather' schema
-dbt run-operation generate_source --args '{"schema_name": "pittsburgh", "generate_columns": true}'
+### Generate _sources.yml
+# Creates _sources.yml with all tables and columns from the 'pittsburgh' schema
+docker exec -it weather_airflow_scheduler dbt run-operation generate_source --args '{"schema_name": "pittsburgh", "generate_columns": true}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
 
 ### Generate stg_*.sql files
 # Creates staging SQL files with all columns pre-populated from source tables
-dbt run-operation generate_base_model --args '{"source_name": "weather", "table_name": "fact_current_weather"}' | pbcopy
-dbt run-operation generate_base_model --args '{"source_name": "weather", "table_name": "dim_location"}' | pbcopy
-dbt run-operation generate_base_model --args '{"source_name": "weather", "table_name": "dim_date"}' | pbcopy
+docker exec -it weather_airflow_scheduler dbt run-operation generate_base_model --args '{"source_name": "pittsburgh", "table_name": "fact_current_weather"}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
+
+docker exec -it weather_airflow_scheduler dbt run-operation generate_base_model --args '{"source_name": "pittsburgh", "table_name": "fact_hourly_forecast"}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
+
+docker exec -it weather_airflow_scheduler dbt run-operation generate_base_model --args '{"source_name": "pittsburgh", "table_name": "fact_weather_history"}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
+
+docker exec -it weather_airflow_scheduler dbt run-operation generate_base_model --args '{"source_name": "pittsburgh", "table_name": "dim_location"}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
+
+docker exec -it weather_airflow_scheduler dbt run-operation generate_base_model --args '{"source_name": "pittsburgh", "table_name": "dim_date"}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
 
 ### Generate *__docs.yml
 # Run staging models, then generate documentation YAML
-dbt run --select staging
-dbt run-operation generate_model_yaml --args '{"model_names": ["stg_postgres__current_weather", "stg_postgres__dates", "stg_postgres__locations"]}' | pbcopy
+docker exec -it weather_airflow_scheduler dbt run --select staging --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
+
+docker exec -it weather_airflow_scheduler dbt run-operation generate_model_yaml --args '{"model_names": ["stg_postgres__current_weather", "stg_postgres__hourly_forecast", "stg_postgres__weather_history", "stg_postgres__dates", "stg_postgres__locations"]}' --profiles-dir /opt/airflow/dbt --project-dir /opt/airflow/dbt
