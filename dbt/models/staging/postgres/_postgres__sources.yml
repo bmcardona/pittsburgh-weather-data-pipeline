@@ -34,8 +34,6 @@ sources:
             data_type: integer
           - name: neighborhood_name
             data_type: character varying
-          - name: community_board
-            data_type: character varying
           - name: latitude
             data_type: numeric
           - name: longitude
@@ -50,6 +48,128 @@ sources:
       - name: fact_current_weather
         columns:
           - name: weather_id
+            data_type: bigint
+          - name: location_id
+            data_type: integer
+          - name: date_id
+            data_type: integer
+          - name: observation_time
+            data_type: timestamp without time zone
+          - name: temperature_2m
+            data_type: numeric
+          - name: apparent_temperature
+            data_type: numeric
+          - name: relative_humidity_2m
+            data_type: numeric
+          - name: wind_speed_10m
+            data_type: numeric
+          - name: wind_direction_10m
+            data_type: numeric
+          - name: wind_gusts_10m
+            data_type: numeric
+          - name: precipitation
+            data_type: numeric
+          - name: rain
+            data_type: numeric
+          - name: showers
+            data_type: numeric
+          - name: snowfall
+            data_type: numeric
+          - name: weather_code
+            data_type: integer
+          - name: cloud_cover
+            data_type: numeric
+          - name: is_day
+            data_type: integer
+          - name: pressure_msl
+            data_type: numeric
+          - name: surface_pressure
+            data_type: numeric
+          - name: created_at
+            data_type: timestamp without time zone
+
+      - name: fact_hourly_forecast
+        columns:
+          - name: forecast_id
+            data_type: bigint
+          - name: location_id
+            data_type: integer
+          - name: date_id
+            data_type: integer
+          - name: forecast_time
+            data_type: timestamp without time zone
+          - name: temperature_2m
+            data_type: numeric
+          - name: relative_humidity_2m
+            data_type: numeric
+          - name: dew_point_2m
+            data_type: numeric
+          - name: apparent_temperature
+            data_type: numeric
+          - name: temperature_80m
+            data_type: numeric
+          - name: temperature_120m
+            data_type: numeric
+          - name: temperature_180m
+            data_type: numeric
+          - name: precipitation_probability
+            data_type: numeric
+          - name: precipitation
+            data_type: numeric
+          - name: rain
+            data_type: numeric
+          - name: showers
+            data_type: numeric
+          - name: snowfall
+            data_type: numeric
+          - name: snow_depth
+            data_type: numeric
+          - name: weather_code
+            data_type: integer
+          - name: pressure_msl
+            data_type: numeric
+          - name: surface_pressure
+            data_type: numeric
+          - name: cloud_cover
+            data_type: numeric
+          - name: cloud_cover_low
+            data_type: numeric
+          - name: cloud_cover_mid
+            data_type: numeric
+          - name: cloud_cover_high
+            data_type: numeric
+          - name: visibility
+            data_type: numeric
+          - name: evapotranspiration
+            data_type: numeric
+          - name: et0_fao_evapotranspiration
+            data_type: numeric
+          - name: vapour_pressure_deficit
+            data_type: numeric
+          - name: wind_speed_10m
+            data_type: numeric
+          - name: wind_direction_10m
+            data_type: numeric
+          - name: wind_gusts_10m
+            data_type: numeric
+          - name: wind_speed_80m
+            data_type: numeric
+          - name: wind_direction_80m
+            data_type: numeric
+          - name: wind_speed_120m
+            data_type: numeric
+          - name: wind_direction_120m
+            data_type: numeric
+          - name: wind_speed_180m
+            data_type: numeric
+          - name: wind_direction_180m
+            data_type: numeric
+          - name: created_at
+            data_type: timestamp without time zone
+
+      - name: fact_weather_history
+        columns:
+          - name: history_id
             data_type: bigint
           - name: location_id
             data_type: integer
