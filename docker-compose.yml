@@ -169,15 +169,17 @@ services:
       build:
         context: ./streamlit_app
         dockerfile: Dockerfile
+      container_name: streamlit_app
       ports:
         - "8501:8501"
+      env_file:
+        - .env   
       environment:
-        - WEATHER_DB_HOST=postgres
-        - WEATHER_DB_PORT=5432
-        - WEATHER_DB_NAME=weather_db
-        - WEATHER_DB_USER=weather_user
+        - WEATHER_DB_USER=${WEATHER_DB_USER}
         - WEATHER_DB_PASSWORD=${WEATHER_DB_PASSWORD}
-        - WEATHER_DB_SCHEMA=${WEATHER_DB_SCHEMA}  # NEW!
+        - WEATHER_DB_HOST=${WEATHER_DB_HOST}          
+        - WEATHER_DB_PORT=${WEATHER_DB_PORT}           
+        - WEATHER_DB_NAME=${WEATHER_DB_NAME}
       depends_on:
         - postgres
       volumes:
