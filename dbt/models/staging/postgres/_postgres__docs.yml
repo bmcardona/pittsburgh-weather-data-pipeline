@@ -154,10 +154,6 @@ models:
         data_type: character varying
         description: ""
 
-      - name: community_board
-        data_type: character varying
-        description: ""
-
       - name: latitude
         data_type: numeric
         description: ""
@@ -175,6 +171,243 @@ models:
         description: ""
 
       - name: updated_at
+        data_type: timestamp without time zone
+        description: ""
+  - name: stg_postgres__weather_history
+    description: ""
+    columns:
+      - name: history_id
+        data_type: bigint
+        description: ""
+
+      - name: location_id
+        data_type: integer
+        description: ""
+
+      - name: date_id
+        data_type: integer
+        description: ""
+
+      - name: observation_time
+        data_type: timestamp without time zone
+        description: ""
+
+      - name: temperature_2m
+        data_type: numeric
+        description: ""
+
+      - name: apparent_temperature
+        data_type: numeric
+        description: ""
+
+      - name: relative_humidity_2m
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_10m
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_10m
+        data_type: numeric
+        description: ""
+
+      - name: wind_gusts_10m
+        data_type: numeric
+        description: ""
+
+      - name: precipitation
+        data_type: numeric
+        description: ""
+
+      - name: rain
+        data_type: numeric
+        description: ""
+
+      - name: showers
+        data_type: numeric
+        description: ""
+
+      - name: snowfall
+        data_type: numeric
+        description: ""
+
+      - name: weather_code
+        data_type: integer
+        description: ""
+
+      - name: cloud_cover
+        data_type: numeric
+        description: ""
+
+      - name: is_day
+        data_type: integer
+        description: ""
+
+      - name: pressure_msl
+        data_type: numeric
+        description: ""
+
+      - name: surface_pressure
+        data_type: numeric
+        description: ""
+
+      - name: created_at
+        data_type: timestamp without time zone
+        description: ""
+        
+  - name: stg_postgres__hourly_forecast
+    description: ""
+    columns:
+      - name: forecast_id
+        data_type: bigint
+        description: ""
+
+      - name: location_id
+        data_type: integer
+        description: ""
+
+      - name: date_id
+        data_type: integer
+        description: ""
+
+      - name: forecast_time
+        data_type: timestamp without time zone
+        description: ""
+
+      - name: temperature_2m
+        data_type: numeric
+        description: ""
+
+      - name: relative_humidity_2m
+        data_type: numeric
+        description: ""
+
+      - name: dew_point_2m
+        data_type: numeric
+        description: ""
+
+      - name: apparent_temperature
+        data_type: numeric
+        description: ""
+
+      - name: temperature_80m
+        data_type: numeric
+        description: ""
+
+      - name: temperature_120m
+        data_type: numeric
+        description: ""
+
+      - name: temperature_180m
+        data_type: numeric
+        description: ""
+
+      - name: precipitation_probability
+        data_type: numeric
+        description: ""
+
+      - name: precipitation
+        data_type: numeric
+        description: ""
+
+      - name: rain
+        data_type: numeric
+        description: ""
+
+      - name: showers
+        data_type: numeric
+        description: ""
+
+      - name: snowfall
+        data_type: numeric
+        description: ""
+
+      - name: snow_depth
+        data_type: numeric
+        description: ""
+
+      - name: weather_code
+        data_type: integer
+        description: ""
+
+      - name: pressure_msl
+        data_type: numeric
+        description: ""
+
+      - name: surface_pressure
+        data_type: numeric
+        description: ""
+
+      - name: cloud_cover
+        data_type: numeric
+        description: ""
+
+      - name: cloud_cover_low
+        data_type: numeric
+        description: ""
+
+      - name: cloud_cover_mid
+        data_type: numeric
+        description: ""
+
+      - name: cloud_cover_high
+        data_type: numeric
+        description: ""
+
+      - name: visibility
+        data_type: numeric
+        description: ""
+
+      - name: evapotranspiration
+        data_type: numeric
+        description: ""
+
+      - name: et0_fao_evapotranspiration
+        data_type: numeric
+        description: ""
+
+      - name: vapour_pressure_deficit
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_10m
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_10m
+        data_type: numeric
+        description: ""
+
+      - name: wind_gusts_10m
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_80m
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_80m
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_120m
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_120m
+        data_type: numeric
+        description: ""
+
+      - name: wind_speed_180m
+        data_type: numeric
+        description: ""
+
+      - name: wind_direction_180m
+        data_type: numeric
+        description: ""
+
+      - name: created_at
         data_type: timestamp without time zone
         description: ""
 
