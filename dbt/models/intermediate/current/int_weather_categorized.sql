@@ -1,6 +1,6 @@
 with joined as (
 
-    select * from {{ ref('int_weather_joined_dates') }}
+    select * from {{ ref('int_weather_joined_locations_and_dates') }}
 
 ),
 
