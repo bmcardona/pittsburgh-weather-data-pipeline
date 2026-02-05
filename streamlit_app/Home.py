@@ -23,7 +23,7 @@ def get_db_connection():
 @st.cache_data(ttl=3600)
 def load_forecast_data():
     conn = get_db_connection()
-    schema = os.getenv('WEATHER_DB_SCHEMA', 'pittsburgh_analytics')
+    schema = os.getenv('WEATHER_DB_ANALYTICS_SCHEMA', 'pittsburgh_analytics')
     
     query = f"""
         SELECT
@@ -49,7 +49,7 @@ def load_forecast_data():
     return df
 
 # Main app
-st.title("Pittsburgh Weather Forecast")
+st.title("Pittsburgh Weather Analytics")
 st.markdown("Hourly forecast for Pittsburgh neighborhoods")
 
 # Load data with error handling
@@ -102,10 +102,29 @@ try:
         
         st.divider()
         
-        # Data info
-        st.caption(f"**Total Records:** {len(df):,}")
-        st.caption(f"**Neighborhoods:** {len(neighborhoods)}")
-        st.caption(f"**Last Updated:** {df['updated_at'].max()}")
+        if not df.empty and 'updated_at' in df.columns:
+            last_updated = df['updated_at'].max()
+            if pd.notna(last_updated):
+                # Convert to datetime if it's not already
+                last_updated_dt = pd.to_datetime(last_updated)
+                
+                # Format the date as "Month Day, Year"
+                formatted_date = last_updated_dt.strftime("%B %d, %Y")
+                
+                # Format the time as "12:01 p.m."
+                hour = last_updated_dt.strftime("%I").lstrip("0")  # Remove leading zero
+                minute = last_updated_dt.strftime("%M")
+                am_pm = last_updated_dt.strftime("%p").lower()
+                formatted_time = f"{hour}:{minute} {am_pm}"
+                
+                # Combine with timezone
+                formatted_datetime = f"{formatted_date} at {formatted_time} EST"
+                
+                st.caption(f"**Last Updated:** {formatted_datetime}")
+            else:
+                st.caption("**Last Updated:** Not available")
+        else:
+            st.caption("**Last Updated:** Not available")
     
     with col1:
         # Filter data for selected neighborhood
@@ -153,4 +172,4 @@ except Exception as e:
         st.write(f"- DB_PORT: {os.getenv('WEATHER_DB_PORT', 'NOT SET')}")
         st.write(f"- DB_NAME: {os.getenv('WEATHER_DB_NAME', 'NOT SET')}")
         st.write(f"- DB_USER: {os.getenv('WEATHER_DB_USER', 'NOT SET')}")
-        st.write(f"- DB_SCHEMA: {os.getenv('WEATHER_DB_SCHEMA', 'NOT SET')}")
+        st.write(f"- DB_SCHEMA: {os.getenv('WEATHER_DB__ANALYTICS_SCHEMA', 'NOT SET')}")

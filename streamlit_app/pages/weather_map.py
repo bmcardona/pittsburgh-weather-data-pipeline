@@ -32,7 +32,7 @@ def load_current_weather():
             user=os.getenv('WEATHER_DB_USER', 'weather_user'),
             password=os.getenv('WEATHER_DB_PASSWORD')
         )
-        schema = os.getenv('WEATHER_DB_SCHEMA', 'pittsburgh_analytics')
+        schema = os.getenv('WEATHER_DB_ANALYTICS_SCHEMA', 'pittsburgh_analytics')
         
         query = f"""
             SELECT DISTINCT ON (neighborhood_name)
@@ -438,4 +438,4 @@ except Exception as e:
         st.write(f"- DB_PORT: {os.getenv('WEATHER_DB_PORT', 'NOT SET')}")
         st.write(f"- DB_NAME: {os.getenv('WEATHER_DB_NAME', 'NOT SET')}")
         st.write(f"- DB_USER: {os.getenv('WEATHER_DB_USER', 'NOT SET')}")
-        st.write(f"- DB_SCHEMA: {os.getenv('WEATHER_DB_SCHEMA', 'NOT SET')}")
+        st.write(f"- DB_SCHEMA: {os.getenv('WEATHER_DB_ANALYTICS_SCHEMA', 'NOT SET')}")
