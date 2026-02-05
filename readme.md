@@ -1,3 +1,5 @@
+![Pittsburgh Weather Analytics Platform](images/home.png)
+
 # Pittsburgh Weather Analytics Platform
 
 ## Overview
