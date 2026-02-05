@@ -4,7 +4,7 @@
 
 ## Overview
 
-This project demonstrates end-to-end data engineering practices by building a complete analytics platform for Pittsburgh weather data. The pipeline extracts weather data from the OpenMeteo API, loads it into a PostgreSQL, and transforms it using dbt dimensional modeling. An interactive web application is also provided using Streamlit. This project is orchestrated by Apache Airflow, and containerized with Docker.
+The goal of this project was to create a weather data pipeline / analytics platform for each neighborhood in Pittsburgh, PA. The pipeline extracts weather data from the OpenMeteo API, loads it into PostgreSQL, and transforms it using dbt. An interactive analytics application was also created using Streamlit. This project is orchestrated using Apache Airflow, and containerized with Docker.
 
 **Key Features:**
 - Automated hourly data extraction from OpenMeteo API for 90+ Pittsburgh neighborhoods
