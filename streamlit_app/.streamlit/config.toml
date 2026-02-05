@@ -4,14 +4,14 @@
 base = "light"
 
 # Light mode 
-primaryColor = "#4A4A47"           # Lighter charcoal accent
-backgroundColor = "#FAFAF8"         # Nearly white with warm hint
-secondaryBackgroundColor = "#F0EDE7" # Very light warm beige
-textColor = "#3D3D3B"              # Softer dark gray
+primaryColor = "#4A4A47"           
+backgroundColor = "#FAFAF8"         
+secondaryBackgroundColor = "#F0EDE7" 
+textColor = "#3D3D3B"              
 
 # Dark mode
 [theme.dark]
-primaryColor = "#D4A574"           # Warm tan accent for dark mode
-backgroundColor = "#1A1A1A"         # Very dark background
-secondaryBackgroundColor = "#2D2D2D" # Dark gray for widgets
-textColor = "#E8E3DB"              # Light beige text
+primaryColor = "#D4A574"           
+backgroundColor = "#1A1A1A"         
+secondaryBackgroundColor = "#2D2D2D" 
+textColor = "#E8E3DB"             
