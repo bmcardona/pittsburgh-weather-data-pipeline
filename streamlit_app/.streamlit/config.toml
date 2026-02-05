@@ -1,23 +1,17 @@
 [theme]
-# Stripe-inspired professional theme
+
+# Start with light mode
 base = "light"
-primaryColor = "#6366f1"
-backgroundColor = "#f8fafc"
-secondaryBackgroundColor = "#ffffff"
-textColor = "#0f172a"
-font = "sans serif"
 
-[server]
-# Server settings
-maxUploadSize = 200
-enableXsrfProtection = true
-enableCORS = false
+# Light mode 
+primaryColor = "#4A4A47"           # Lighter charcoal accent
+backgroundColor = "#FAFAF8"         # Nearly white with warm hint
+secondaryBackgroundColor = "#F0EDE7" # Very light warm beige
+textColor = "#3D3D3B"              # Softer dark gray
 
-[browser]
-# Browser settings
-gatherUsageStats = false
-
-[runner]
-# Performance settings
-magicEnabled = true
-fastReruns = true
+# Dark mode
+[theme.dark]
+primaryColor = "#D4A574"           # Warm tan accent for dark mode
+backgroundColor = "#1A1A1A"         # Very dark background
+secondaryBackgroundColor = "#2D2D2D" # Dark gray for widgets
+textColor = "#E8E3DB"              # Light beige text
