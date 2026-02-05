@@ -1,6 +1,6 @@
-![Pittsburgh Weather Analytics Platform](gifs/home.gif)
+![Pittsburgh Weather Data Pipeline](gifs/home.gif)
 
-# Pittsburgh Weather Analytics Platform
+# Pittsburgh Weather Data Pipeline
 
 ## Overview
 
