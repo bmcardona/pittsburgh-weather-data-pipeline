@@ -7,11 +7,11 @@
 The goal of this project was to create a weather data pipeline / analytics platform for each neighborhood in Pittsburgh, PA. The pipeline extracts weather data from the OpenMeteo API, loads it into PostgreSQL, and transforms it using dbt. An interactive analytics application was also created using Streamlit. This project is orchestrated using Apache Airflow, and containerized with Docker.
 
 **Key Features:**
-- Automated hourly data extraction from OpenMeteo API for 90+ Pittsburgh neighborhoods
+- Automated hourly data extraction from OpenMeteo API for all 90 Pittsburgh neighborhoods
 - Transformations performed with dbt using different models (source, intermediate, and marts)
-- Interactive Streamlit dashboard for weather trend analysis and forecasting 
+- Interactive Streamlit dashboard for weather trend forecasting 
 - Fully containerized architecture for easy deployment
-- Simple task orchestration with Apache Airflow
+- Task orchestration with Apache Airflow
 
 ## Tech Stack
 
@@ -63,7 +63,7 @@ The goal of this project was to create a weather data pipeline / analytics platf
 ### Prerequisites
 - Docker Desktop installed
 - Docker Compose installed
-- At least 4GB of available RAM
+- At least 4GB of available RAM (Docker Desktop usually requires a minimum of 4GB of system RAM on Windows and Mac to function efficiently)
 
 ### Setup Instructions
 
@@ -74,43 +74,70 @@ The goal of this project was to create a weather data pipeline / analytics platf
    ```
 
 2. **Configure environment variables**
-   
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and fill in the required values:
-   ```env
-   # PostgreSQL Configuration
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=your_secure_password
-   POSTGRES_HOST=postgres
-   POSTGRES_PORT=5432
-   
-   # Weather Database
-   WEATHER_DB_USER=weather_user
-   WEATHER_DB_PASSWORD=weather_password
-   WEATHER_DB_HOST=postgres
-   WEATHER_DB_PORT=5432
-   WEATHER_DB_NAME=weather_db
-   WEATHER_DB_SCHEMA=public
-   
-   # Airflow settings (can use defaults provided in .env.example)
-   # AIRFLOW_ADMIN_USERNAME, AIRFLOW_ADMIN_PASSWORD, etc.
-   ```
-   
-   > **Note**: Never commit your `.env` file to version control. The `.gitignore` file is configured to exclude it.
+
+### Environment Variables (.env file)
+
+The project requires an `.env` file for configuration. Copy `.env.example` to `.env` and change the values with a "CHANGE THIS!" next to them:
+
+```env
+# ============================================================================
+# POSTGRESQL - Container Configuration
+# ============================================================================
+POSTGRES_USER=postgres              # PostgreSQL superuser
+POSTGRES_PASSWORD=your_password     # Superuser password (CHANGE THIS!)
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+
+# ============================================================================
+# WEATHER DATA - Database Configuration
+# ============================================================================
+WEATHER_DB_USER=weather_user
+WEATHER_DB_PASSWORD=weather_password    # CHANGE THIS!
+WEATHER_DB_HOST=postgres
+WEATHER_DB_PORT=5432
+WEATHER_DB_NAME=weather_db
+WEATHER_DB_SCHEMA=public
+
+# ============================================================================
+# AIRFLOW - Database & Configuration
+# ============================================================================
+AIRFLOW_DB_NAME=airflow_db
+AIRFLOW_DB_USER=airflow_user
+AIRFLOW_DB_PASSWORD=airflow_pass        # CHANGE THIS!
+
+# Airflow Core Settings
+AIRFLOW_UID=50000
+AIRFLOW__CORE__EXECUTOR=LocalExecutor
+AIRFLOW__CORE__FERNET_KEY=sxRsOaT7DQZ0yG6EOyGVQhJt8e5cFSFfeL5m=     # CHANGE THIS!
+AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
+AIRFLOW__CORE__LOAD_EXAMPLES=false
+AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
+
+# Airflow Database Connection
+AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow_user:airflow_pass@postgres:5432/airflow_db
+
+# Airflow Admin User
+AIRFLOW_ADMIN_USERNAME=admin            # CHANGE THIS!
+AIRFLOW_ADMIN_PASSWORD=admin            # CHANGE THIS!
+AIRFLOW__WEBSERVER__SECRET_KEY=ea66b610217b9986df7826270ab1bc619e3a15ac963ff44bb5443233568adde6
+```
+
+**Security Notes:**
+- Change all default passwords before deploying
+- Never commit `.env` to version control (added to `.gitignore`)
+- Generate a new Fernet key for production: 
+  ```bash
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  ```
 
 3. **Build and start all services**
 ```bash
    docker-compose build
    docker-compose up -d
 ```
-   
-   > **Note**: On first run, the `airflow-init` service will initialize the database and create the admin user. This must complete successfully before Airflow starts.
+   > **Note**: The `airflow-init` image must be built to initialize the database and create the Airflow UI  admin user. This must complete successfully before Airflow starts.
 
-4. **Wait for services to initialize** (about 2-3 minutes)
+4. **Wait for services to initialize** (usually takes about 2-3 minutes)
 ```bash
    docker-compose logs -f
 ```
@@ -148,22 +175,27 @@ This pipeline runs automatically every hour, but you can trigger manual executio
 ### **What happens when you trigger the pipeline:**
 
 ** Current Weather Data Pipeline:**
-- **Extracts** real-time weather conditions for all 90 Pittsburgh neighborhoods
-- **Fetches** from Open-Meteo API (temperature, humidity, precipitation, wind speed, etc.)
-- **Loads** into PostgreSQL `fact_current_weather` table with location and date dimensional data
+- **Extracts** real-time weather conditions (temperature, humidity, precipitation, wind speed, etc.) for all 90 Pittsburgh neighborhoods from Open-Meteo API 
+- **Loads** into PostgreSQL `fact_current_weather` fact table, in addition to location (`dim_location`) and date (`dim_date`) dimension tables
 
 ** 7-Day Hourly Forecast Pipeline:**
-- **Extracts** hourly forecasts for next 168 hours (7 days × 24 hours)
-- **Clears** old forecasts (approx. 15,120 rows: 90 neighborhoods × 168 hours)
+- **Extracts** hourly forecasts for next 168 hours (since 7 * 24 hours = 168 hours)
+- **Clears** old forecasts (approx. 15,120 rows: 90 neighborhoods * 168 hours)
 - **Loads** fresh forecasts into `fact_hourly_forecast` table
 
 ** Data Transformation:**
 - **Runs dbt models** to transform raw data into mart tables
 
+After the transformations are complete, the final dbt lineage graph (accessible via the dbt UI) should look like this:
+![DAG](images/lineage_graph.png)
+
+
 ### **Monitoring the Execution:**
 - **Tree View**: Watch task progression (green = success, red = failure)
 - **Graph View**: See the parallel execution flow
+![DAG](images/DAG.png)
 - **Logs**: Click any task to view detailed execution logs
+
 
 ### **Pipeline Schedule:**
 - **Default**: Runs automatically every hour at minute 0
@@ -219,62 +251,6 @@ The Streamlit dashboard provides:
 - **Hourly Granularity**: Hour-by-hour weather trends with hover details
 - **Real-Time Updates**: Data refreshed hourly using Airflow
 
-## Configuration
-
-### Environment Variables (.env file)
-
-The project requires an `.env` file for configuration. Copy `.env.example` to `.env` and customize the values:
-
-```env
-# ============================================================================
-# POSTGRESQL - Container Configuration
-# ============================================================================
-POSTGRES_USER=postgres              # PostgreSQL superuser
-POSTGRES_PASSWORD=your_password     # Superuser password (CHANGE THIS!)
-POSTGRES_HOST=postgres
-POSTGRES_PORT=5432
-
-# ============================================================================
-# WEATHER DATA - Database Configuration
-# ============================================================================
-WEATHER_DB_USER=weather_user
-WEATHER_DB_PASSWORD=weather_password    # CHANGE THIS!
-WEATHER_DB_HOST=postgres
-WEATHER_DB_PORT=5432
-WEATHER_DB_NAME=weather_db
-WEATHER_DB_SCHEMA=public
-
-# ============================================================================
-# AIRFLOW - Database & Configuration
-# ============================================================================
-AIRFLOW_DB_NAME=airflow_db
-AIRFLOW_DB_USER=airflow_user
-AIRFLOW_DB_PASSWORD=airflow_pass        # CHANGE THIS!
-
-# Airflow Core Settings
-AIRFLOW_UID=50000
-AIRFLOW__CORE__EXECUTOR=LocalExecutor
-AIRFLOW__CORE__FERNET_KEY=sxRsOaT7DQZ0yG6EOyGVQhJt8e5cFSFfeL5m=     # CHANGE THIS!
-AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
-AIRFLOW__CORE__LOAD_EXAMPLES=false
-AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
-
-# Airflow Database Connection
-AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow_user:airflow_pass@postgres:5432/airflow_db
-
-# Airflow Admin User
-AIRFLOW_ADMIN_USERNAME=admin            # CHANGE THIS!
-AIRFLOW_ADMIN_PASSWORD=admin            # CHANGE THIS!
-AIRFLOW__WEBSERVER__SECRET_KEY=ea66b610217b9986df7826270ab1bc619e3a15ac963ff44bb5443233568adde6
-```
-
-**Security Notes:**
-- Change all default passwords before deploying
-- Never commit `.env` to version control (added to `.gitignore`)
-- Generate a new Fernet key for production: 
-  ```bash
-  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-  ```
 
 ### Airflow DAG Schedule
 
@@ -312,7 +288,6 @@ Database connections configured in `dbt/profiles.yml`:
 ```
 
 ## Running dbt Locally
-
 ```bash
 # Enter the Airflow container
 docker exec -it weather_airflow_scheduler bash
@@ -321,15 +296,19 @@ docker exec -it weather_airflow_scheduler bash
 cd /opt/airflow/dbt
 
 # Run dbt models
-dbt run
+dbt run --profiles-dir /opt/airflow/dbt
 
 # Run tests
-dbt test
+dbt test --profiles-dir /opt/airflow/dbt
 
 # Generate documentation
-dbt docs generate
-dbt docs serve
+dbt docs generate --profiles-dir /opt/airflow/dbt
+
+# Serve documentation (accessible at http://localhost:8081)
+dbt docs serve --port 8081 --host 0.0.0.0 --profiles-dir /opt/airflow/dbt
 ```
+
+**Note**: The `--host 0.0.0.0` flag allows the dbt docs server to be accessible from your browser outside the container.
 
 ## Development Workflow
 
@@ -392,15 +371,13 @@ docker exec -it postgres_container psql -U postgres -d weather_db
 
 ## License
 
-MIT License - feel free to use this project for learning and portfolio purposes.
+MIT License (see LICENSE.md) - feel free to use this project for your own learning purposes.
 
 ## Contributing
 
 This is only a portfolio project, but feedback and suggestions are welcome! Feel free to open an issue or submit a pull request.
 
 ## Reach out!
-
-**Bradley M. Cardona**
 - GitHub: [@bmcardona](https://github.com/bmcardona)
 - LinkedIn: [bmcardona](https://www.linkedin.com/in/bmcardona/)
 - Email: bradleymcardona@gmail.com
