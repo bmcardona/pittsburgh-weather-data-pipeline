@@ -5,7 +5,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy all files
 COPY . .
+
+# Create etl directory and copy GeoJSON explicitly
+RUN mkdir -p /app/etl
+COPY pittsburgh_neighborhoods.geojson /app/etl/pittsburgh_neighborhoods.geojson
+
+# Verify it's there
+RUN ls -la /app/etl/
 
 EXPOSE 8501
 
