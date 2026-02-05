@@ -150,12 +150,12 @@ This pipeline runs automatically every hour, but you can trigger manual executio
 - **Fetches** from Open-Meteo API (temperature, humidity, precipitation, wind speed, etc.)
 - **Loads** into PostgreSQL `fact_current_weather` table with location and date dimensional data
 
-**🔮 7-Day Hourly Forecast Pipeline:**
+** 7-Day Hourly Forecast Pipeline:**
 - **Extracts** hourly forecasts for next 168 hours (7 days × 24 hours)
 - **Clears** old forecasts (approx. 15,120 rows: 90 neighborhoods × 168 hours)
 - **Loads** fresh forecasts into `fact_hourly_forecast` table
 
-**🔄 Data Transformation:**
+** Data Transformation:**
 - **Runs dbt models** to transform raw data into mart tables
 
 ### **Monitoring the Execution:**
@@ -208,7 +208,7 @@ docker-compose down -v
 **Marts Layer** (`models/marts/`)
 - Analytics-ready tables suited for querying
 
-## 📈 Analytics Dashboard
+## Analytics Dashboard
 
 The Streamlit dashboard provides:
 - **Neighborhood Selection**: View detailed forecasts for any of 90+ Pittsburgh neighborhoods
@@ -217,7 +217,7 @@ The Streamlit dashboard provides:
 - **Hourly Granularity**: Hour-by-hour weather trends with hover details
 - **Real-Time Updates**: Data refreshed hourly using Airflow
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables (.env file)
 
@@ -268,7 +268,7 @@ AIRFLOW__WEBSERVER__SECRET_KEY=ea66b610217b9986df7826270ab1bc619e3a15ac963ff44bb
 
 **Security Notes:**
 - Change all default passwords before deploying
-- Never commit `.env` to version control (add to `.gitignore`)
+- Never commit `.env` to version control (added to `.gitignore`)
 - Generate a new Fernet key for production: 
   ```bash
   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
@@ -396,7 +396,7 @@ MIT License - feel free to use this project for learning and portfolio purposes.
 
 This is only a portfolio project, but feedback and suggestions are welcome! Feel free to open an issue or submit a pull request.
 
-## Author
+## Reach out!
 
 **Bradley M. Cardona**
 - GitHub: [@bmcardona](https://github.com/bmcardona)
