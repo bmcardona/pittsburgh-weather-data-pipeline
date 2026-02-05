@@ -1,4 +1,4 @@
-![Pittsburgh Weather Analytics Platform](images/home.png)
+![Pittsburgh Weather Analytics Platform](gifs/home.gif)
 
 # Pittsburgh Weather Analytics Platform
 
@@ -45,6 +45,8 @@ This project demonstrates end-to-end data engineering practices by building a co
 ├── database/
 │   ├── init.sql                      # Current Weather Database initialization
 │   └── init_forecast.sql             # Forecast Weather Database initialization
+├── images/
+│   └── home.png                      # streamlit home page image
 ├── streamlit_app/
 │   ├── Home.py                       # Streamlit main page
 │   ├── pages/                        # Additional dashboard pages
