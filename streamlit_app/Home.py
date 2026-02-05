@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import psycopg2
 import os
+from datetime import datetime, timedelta
 
 # Page config
 st.set_page_config(page_title="Pittsburgh Weather Dashboard", layout="wide")
@@ -48,12 +49,15 @@ def load_forecast_data():
     return df
 
 # Main app
-st.title("🌤️ Pittsburgh Weather Forecast")
-st.markdown("7-day hourly forecast for Pittsburgh neighborhoods")
+st.title("Pittsburgh Weather Forecast")
+st.markdown("Hourly forecast for Pittsburgh neighborhoods")
 
 # Load data with error handling
 try:
     df = load_forecast_data()
+    
+    # Ensure forecast_time is datetime
+    df['forecast_time'] = pd.to_datetime(df['forecast_time'])
     
     # Layout: two columns
     col1, col2 = st.columns([3, 1])
@@ -67,6 +71,14 @@ try:
             "Select Neighborhood",
             neighborhoods,
             index=0
+        )
+        
+        # Day range selector
+        forecast_days = st.selectbox(
+            "Forecast Range",
+            options=[1, 2, 3, 4, 5, 6, 7],
+            index=6,  # Default to 7 days
+            format_func=lambda x: f"{x} Day{'s' if x > 1 else ''}"
         )
         
         # Metric selector
@@ -99,12 +111,18 @@ try:
         # Filter data for selected neighborhood
         filtered_df = df[df['neighborhood_name'] == selected_neighborhood].copy()
         
+        # Filter by day range
+        if len(filtered_df) > 0:
+            min_time = filtered_df['forecast_time'].min()
+            cutoff_time = min_time + timedelta(days=forecast_days)
+            filtered_df = filtered_df[filtered_df['forecast_time'] < cutoff_time]
+        
         # Create plot
         fig = px.line(
             filtered_df,
             x='forecast_time',
             y=selected_metric,
-            title=f"{selected_metric_label} - {selected_neighborhood}",
+            title=f"{selected_metric_label} - {selected_neighborhood} ({forecast_days}-Day Forecast)",
             labels={
                 'forecast_time': 'Time',
                 selected_metric: selected_metric_label
@@ -119,34 +137,10 @@ try:
             showlegend=False
         )
         
-        fig.update_traces(line_color='#1f77b4', line_width=2)
+        fig.update_traces(line_color='gold', line_width=2)
         
         st.plotly_chart(fig, use_container_width=True)
         
-        # Show summary stats
-        st.subheader("7-Day Summary")
-        col_a, col_b, col_c, col_d = st.columns(4)
-        
-        with col_a:
-            current_val = filtered_df[selected_metric].iloc[0]
-            st.metric("Current", f"{current_val:.1f}")
-        with col_b:
-            avg_val = filtered_df[selected_metric].mean()
-            st.metric("Average", f"{avg_val:.1f}")
-        with col_c:
-            min_val = filtered_df[selected_metric].min()
-            st.metric("Min", f"{min_val:.1f}")
-        with col_d:
-            max_val = filtered_df[selected_metric].max()
-            st.metric("Max", f"{max_val:.1f}")
-        
-        # Optional: Show data table
-        with st.expander("📊 View Raw Data"):
-            st.dataframe(
-                filtered_df[['forecast_time', selected_metric]],
-                hide_index=True,
-                use_container_width=True
-            )
 
 except Exception as e:
     st.error(f"Error loading data: {str(e)}")
