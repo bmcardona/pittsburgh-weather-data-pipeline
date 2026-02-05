@@ -67,7 +67,7 @@ This project demonstrates end-to-end data engineering practices by building a co
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/BMCARDONA/pittsburgh-weather-analytics.git
+   git clone https://github.com/BMCARDONA/pittsburgh-weather-data-pipeline
    cd pittsburgh-weather-analytics
    ```
 
@@ -377,7 +377,7 @@ docker exec -it postgres_container psql -U postgres -d weather_db
 - Check dbt models completed: `dbt run`
 - Verify data in analytics schema:
   ```sql
-  SELECT * FROM pittsburgh_analytics.forecasts LIMIT 10;
+  SELECT * FROM pittsburgh_analytics.forecast LIMIT 10;
   ```
 
 ## Resources
