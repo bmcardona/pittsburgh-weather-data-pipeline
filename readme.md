@@ -15,11 +15,11 @@ This project demonstrates end-to-end data engineering practices by building a co
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| **Transformation** | dbt (data build tool) | Data modeling and transformations |
-| **Database** | PostgreSQL | Data warehouse (staging + analytics) |
-| **Visualization** | Streamlit | Interactive analytics dashboard |
-| **Language** | Python3 | ETL scripts and application logic |
 | **Data Source** | OpenMeteo API | Weather forecast data |
+| **Language** | Python3 | Extraction scripts, Streamlit application logic |
+| **Database** | PostgreSQL | Data warehouse (staging + analytics) |
+| **Transformation** | dbt (data build tool) | Transformations, data modeling |
+| **Visualization** | Streamlit | Interactive analytics dashboard |
 | **Orchestration** | Apache Airflow | DAG scheduling and pipeline monitoring |
 | **Containerization** | Docker & Docker Compose | Environment isolation and deployment |
 
@@ -96,7 +96,7 @@ This project demonstrates end-to-end data engineering practices by building a co
    # AIRFLOW_ADMIN_USERNAME, AIRFLOW_ADMIN_PASSWORD, etc.
    ```
    
-   > ⚠️ **Important**: Never commit your `.env` file to version control. The `.gitignore` file is configured to exclude it.
+   > **Note**: Never commit your `.env` file to version control. The `.gitignore` file is configured to exclude it.
 
 3. **Build and start all services**
 ```bash
@@ -126,6 +126,48 @@ This project demonstrates end-to-end data engineering practices by building a co
    - Find the `pittsburgh_weather_pipeline` DAG
    - Click the play button to trigger a manual run
 
+6. **Trigger the Pittsburgh Weather Pipeline**
+
+This pipeline runs automatically every hour, but you can trigger manual executions for testing or immediate data collection:
+
+### To manually trigger the pipeline:
+1. **Access the Airflow Web UI**
+   - Open your browser and navigate to `http://localhost:8080` (default port)
+   - Log in with credentials (default: `airflow` / `airflow` unless changed)
+
+2. **Locate the Pittsburgh Weather DAG**
+   - In the DAGs list, find `pittsburgh_weather_pipeline`
+
+3. **Trigger a manual execution**
+   - Click the **Trigger DAG button** (▶️) in the Actions column
+
+### **What happens when you trigger the pipeline:**
+
+** Current Weather Data Pipeline:**
+- **Extracts** real-time weather conditions for all 90 Pittsburgh neighborhoods
+- **Fetches** from Open-Meteo API (temperature, humidity, precipitation, wind speed, etc.)
+- **Loads** into PostgreSQL `fact_current_weather` table with location and date dimensional data
+
+**🔮 7-Day Hourly Forecast Pipeline:**
+- **Extracts** hourly forecasts for next 168 hours (7 days × 24 hours)
+- **Clears** old forecasts (approx. 15,120 rows: 90 neighborhoods × 168 hours)
+- **Loads** fresh forecasts into `fact_hourly_forecast` table
+
+**🔄 Data Transformation:**
+- **Runs dbt models** to transform raw data into mart tables
+
+### **Monitoring the Execution:**
+- **Tree View**: Watch task progression (green = success, red = failure)
+- **Graph View**: See the parallel execution flow
+- **Logs**: Click any task to view detailed execution logs
+
+### **Pipeline Schedule:**
+- **Default**: Runs automatically every hour at minute 0
+- **Manual**: Trigger anytime via Airflow UI
+- **Timezone**: Start date uses `America/New_York` but Airflow schedules use UTC
+
+**Note**: The first manual run populates all tables. Subsequent runs update current conditions and replace old forecasts with new forecasts.
+
 ### Stopping the Services
 
 ```bash
@@ -143,11 +185,7 @@ docker-compose down -v
 - The extract_forecast_from_openmeteo.py script fetches current weather from OpenMeteo API 
 - The extract_forecast_from_openmeteo.py script fetches 7-day hourly weather forecasts from OpenMeteo API. 
 - Covers 90+ Pittsburgh neighborhoods
-- Collects 60+ weather features including:
-  - Temperature (current, min, max, feels-like)
-  - Precipitation (probability, amount)
-  - Wind (speed, direction, gusts)
-  - Atmospheric conditions (pressure, humidity, cloud cover)
+- Collects 60+ weather features, including emperature (current, min, max, feels-like, precipitation (probability, amount), wind (speed, direction, gusts), atmospheric conditions (pressure, humidity, cloud cover), etc.
 
 ### Loading (L)
 - Raw data loaded into Postgres RDBMS
@@ -212,7 +250,7 @@ AIRFLOW_DB_PASSWORD=airflow_pass        # CHANGE THIS!
 # Airflow Core Settings
 AIRFLOW_UID=50000
 AIRFLOW__CORE__EXECUTOR=LocalExecutor
-AIRFLOW__CORE__FERNET_KEY=sxRsOaT7DQZ0yG6EOyGVQhJt8e5cFSFfeL5mIWPOL5Q=
+AIRFLOW__CORE__FERNET_KEY=sxRsOaT7DQZ0yG6EOyGVQhJt8e5cFSFfeL5m=     # CHANGE THIS!
 AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
 AIRFLOW__CORE__LOAD_EXAMPLES=false
 AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
@@ -246,6 +284,7 @@ schedule="0 * * * *",
 
 # Change to daily at 6:00 AM UTC:
 schedule="0 6 * * *",
+```
 
 ### dbt Profiles
 
@@ -339,23 +378,17 @@ docker exec -it postgres_container psql -U postgres -d weather_db
   SELECT * FROM pittsburgh_analytics.forecasts LIMIT 10;
   ```
 
-## Future Enhancements
-
-- [ ] Add historical weather data for improved trend analysis
-- [ ] Implement alerting for severe weather conditions
-- [ ] Integrate machine learning for forecast accuracy prediction
-
 ## Resources
 
-- [OpenMeteo API Documentation](https://open-meteo.com/en/docs)
+- [OpenMeteo API Docs](https://open-meteo.com/en/docs)
 - [Apache Airflow Docs](https://airflow.apache.org/docs/)
-- [dbt Documentation](https://docs.getdbt.com/)
-- [Streamlit Documentation](https://docs.streamlit.io/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [dbt Docs](https://docs.getdbt.com/)
+- [Streamlit Docs](https://docs.streamlit.io/)
+- [PostgreSQL Docs](https://www.postgresql.org/docs/)
 
 ## License
 
-ThisMIT License - feel free to use this project for learning and portfolio purposes.
+MIT License - feel free to use this project for learning and portfolio purposes.
 
 ## Contributing
 
