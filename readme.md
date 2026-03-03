@@ -4,7 +4,7 @@
 
 ## Overview
 
-The goal of this project was to create a weather data pipeline / analytics platform for each neighborhood in Pittsburgh, PA. The pipeline extracts weather data from the OpenMeteo API, loads it into PostgreSQL, and transforms it using dbt. An interactive analytics application was also created using Streamlit. This project is orchestrated using Apache Airflow, and containerized with Docker.
+🌦️ Welcome to the Pittsburgh Weather Data Pipeline. The goal of this project was to create a weather data pipeline (and analytics platform) for each neighborhood in Pittsburgh, PA. The pipeline extracts weather data from the OpenMeteo API, loads it into a Postgres database, and transforms this data using dbt. Streamlit is then used to provide a interactive front-end interface to look at the different weather metrics for each neighborhood. 
 
 **Key Features:**
 - Automated hourly data extraction from OpenMeteo API for all 90 Pittsburgh neighborhoods
@@ -371,7 +371,7 @@ docker exec -it postgres_container psql -U postgres -d weather_db
 
 ## License
 
-MIT License (see LICENSE.md) - feel free to use this project for your own learning purposes.
+This project is licensed under an MIT License, so please feel free to use this project whenever you'd like for your own learning purposes.
 
 ## Contributing
 
