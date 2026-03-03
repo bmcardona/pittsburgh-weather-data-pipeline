@@ -187,7 +187,7 @@ This pipeline runs automatically every hour, but you can trigger manual executio
 - **Runs dbt models** to transform raw data into mart tables
 
 After the transformations are complete, the final dbt lineage graph (accessible via the dbt UI) should look like this:
-![DAG](images/lineage_graph.png)
+<!-- ![DAG](images/lineage_graph.png) -->
 
 
 ### **Monitoring the Execution:**
